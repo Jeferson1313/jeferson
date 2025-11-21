@@ -1,0 +1,8 @@
+.\assets\Cafe.jpg
+.\assets\Mandioca.jpg
+.\assets\Tomate.jpg
+.\assets\Milho.jpg
+.\assets\Feijao.jpg
+.\assets\Soja.jpg
+.\assets\Batata.jpg
+.\assets\Berinjela.jpg

@@ -1,0 +1,33 @@
+unit Unit3;
+
+interface
+
+uses
+  System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants, 
+  FMX.Types, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.StdCtrls,
+  FMX.Objects, FMX.Controls.Presentation, FMX.Effects;
+
+type
+  TFrame3 = class(TFrame)
+    Rectangle1: TRectangle;
+    Image1: TImage;
+    Label1: TLabel;
+    ShadowEffect1: TShadowEffect;
+
+    procedure Rectangle1Tap(Sender: TObject; const Point: TPointF);
+  private
+    { Private declarations }
+  public
+    { Public declarations }
+  end;
+
+implementation
+
+{$R *.fmx}
+
+procedure TFrame3.Rectangle1Tap(Sender: TObject; const Point: TPointF);
+begin
+  ShowMessage('Te amo meu amorzinho! aguarde as próximas atualizações')
+end;
+
+end.

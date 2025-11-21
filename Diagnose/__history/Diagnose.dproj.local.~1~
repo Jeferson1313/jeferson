@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BorlandProject>
+	<Transactions>
+    <Transaction>2025/10/15 22:10:52.000.645,=C:\Users\jefer\OneDrive\Imagens\Documentos\Embarcadero\Studio\Projects\Unit1.pas</Transaction>
+    <Transaction>2025/10/15 22:11:31.000.469,C:\Users\jefer\OneDrive\Imagens\Documentos\Embarcadero\Studio\Projects\Unit1.pas=C:\Users\jefer\Documents\Projetos\Apps\Diagnose\Unit1.pas</Transaction>
+    <Transaction>2025/10/15 22:11:31.000.469,C:\Users\jefer\OneDrive\Imagens\Documentos\Embarcadero\Studio\Projects\Unit1.fmx=C:\Users\jefer\Documents\Projetos\Apps\Diagnose\Unit1.fmx</Transaction>
+    <Transaction>2025/10/15 22:11:45.000.597,C:\Users\jefer\OneDrive\Imagens\Documentos\Embarcadero\Studio\Projects\Project1.dproj=C:\Users\jefer\Documents\Projetos\Apps\Diagnose\Diagnose.dproj</Transaction>
+    <Transaction>2025/10/15 22:12:03.000.647,=C:\Users\jefer\Documents\Projetos\Apps\Diagnose\Unit2.pas</Transaction>
+    <Transaction>2025/10/15 22:12:11.000.653,C:\Users\jefer\Documents\Projetos\Apps\Diagnose\Unit1.pas=</Transaction>
+    <Transaction>2025/10/20 21:56:09.000.794,=C:\Users\jefer\Documents\Projetos\Apps\Diagnose\Unit3.pas</Transaction>
+    <Transaction>2025/10/20 22:06:30.442,=C:\Projetos\Diagnose\Unit4.pas</Transaction>
+  </Transactions>
+	<ActiveMobileDevice>
+		<NoProfile Android64="ZF524K5LTG" Android="ZF524K5LTG"/>
+	</ActiveMobileDevice>
+</BorlandProject>

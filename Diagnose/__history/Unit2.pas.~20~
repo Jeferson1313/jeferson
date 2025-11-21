@@ -1,0 +1,185 @@
+﻿unit Unit2;
+
+interface
+
+uses
+  System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
+  FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.Layouts,
+  FMX.StdCtrls, FMX.Objects, FMX.Controls.Presentation, FMX.Effects;
+
+type
+  // MUDANÇA AQUI: TForm1 -> TForm2
+  TForm2 = class(TForm)
+    ScrollBox1: TScrollBox;
+    FlowLayout1: TFlowLayout;
+    Layout2: TLayout;
+    Layout3: TLayout;
+    Image1: TImage;
+    Layout4: TLayout;
+    Text1: TText;
+    Layout5: TLayout;
+    Text2: TText; // Supondo que FlowLayout1 é o nome do seu componente
+    procedure FormCreate(Sender: TObject);
+    procedure FormResize(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+    procedure Image1Click(Sender: TObject);
+  private
+    { Declarações privadas }
+    procedure CreateDynamicCards(const CardCount: Integer);
+
+
+  public
+    { Declarações públicas }
+  end;
+
+var
+  // MUDANÇA AQUI: Form1 -> Form2
+  Form2: TForm2;
+
+implementation
+
+{$R *.fmx}
+
+procedure TForm2.FormShow(Sender: TObject);
+begin
+  // AQUI é o momento mais seguro para calcular layouts responsivos
+  CreateDynamicCards(8);
+end;
+
+procedure TForm2.Image1Click(Sender: TObject);
+begin
+
+end;
+
+// Constantes para a proporção do card
+const
+  CARD_WIDTH_RATIO = 240;
+  CARD_HEIGHT_RATIO = 430;
+  CARD_ASPECT_RATIO = CARD_WIDTH_RATIO / CARD_HEIGHT_RATIO; // 1.7916
+
+procedure TForm2.CreateDynamicCards(const CardCount: Integer);
+var
+  i: Integer;
+  CardWidth, CardHeight, GapH, GapV: Single;
+  R: TRectangle;
+  L: TLabel;
+  Columns, Rows: Integer;
+  TotalHeight: Single;
+  AvailableWidth: Single;
+  TotalPaddingH: Single; // Novo: Variável para o padding horizontal total
+begin
+  // 0) Proteção
+  if not Assigned(FlowLayout1) then Exit;
+
+  // 1) Libera controles antigos de verdade
+  while FlowLayout1.ControlsCount > 0 do
+    FlowLayout1.Controls[0].Free;
+
+  // 2) Ajustes, gaps e PADDINGS
+  GapH := FlowLayout1.HorizontalGap; // gap horizontal entre cards
+  GapV := FlowLayout1.VerticalGap;   // gap vertical entre cards
+
+  // NOVO: Se FlowLayout1.Padding.Left = 20 e .Right = 20, o padding total é 40.
+  // Ajuste esta variável se o padding for diferente de 20/20.
+  TotalPaddingH := 40;
+
+  // 3) Calcula largura disponível para os cards DENTRO da área de padding
+  // O ideal é usar ScrollBox1.Width, pois o FlowLayout está alinhado a ele.
+  // AvailableWidth é a largura do ScrollBox (o contêiner) MENOS o padding total.
+  AvailableWidth := ScrollBox1.Width - TotalPaddingH;
+
+  // Fallback de segurança se ScrollBox.Width for 0.
+  if AvailableWidth <= 0 then
+    AvailableWidth := FlowLayout1.Width - TotalPaddingH;
+
+  // 4) Decide número de colunas (tente 2; se card ficar pequeno, use 1)
+  const
+    // Mantenha esta constante
+    MIN_CARD_WIDTH = 200;
+  begin
+    // tenta 2 colunas: A largura para dois cards (dividindo o GapH)
+    CardWidth := (AvailableWidth - GapH) / 2;
+    if CardWidth < MIN_CARD_WIDTH then
+      Columns := 1
+    else
+      Columns := 2;
+  end;
+
+  // 5) Recalcula CardWidth/Height com base nas colunas escolhidas
+  // O cálculo agora usa a AvailableWidth AJUSTADA
+  CardWidth := (AvailableWidth - (Columns - 1) * GapH) / Columns;
+  if CardWidth < 1 then CardWidth := AvailableWidth; // segurança
+
+  // Se a proporção for 240:430, seu card é alto e estreito.
+  // Se você deseja o card largo (como na imagem), use 430:240.
+  CardHeight := CardWidth / CARD_ASPECT_RATIO;
+  if CardHeight < 150 then CardHeight := 150;
+
+  // 6) Cria os cards dinamicamente
+  for i := 1 to CardCount do
+  begin
+    R := TRectangle.Create(Self);
+    R.Parent := FlowLayout1;
+    // Não atribuir R.Name para evitar conflito de nomes
+    R.XRadius := 12;
+    R.YRadius := 12;
+    R.Fill.Color := $FFEEEEEE;
+    R.Stroke.Color := TAlphaColorRec.Gray;
+    R.Stroke.Thickness := 1;
+    R.Width := CardWidth;
+    R.Height := CardHeight;
+    R.Align := TAlignLayout.None;
+    R.Stroke.Thickness := 0;
+
+    // Label de exemplo
+    L := TLabel.Create(R);
+    L.Parent := R;
+    L.Text := 'Item Dinâmico ' + IntToStr(i);
+    L.Align := TAlignLayout.Top;
+    L.Margins.Top := 8;
+    L.TextSettings.Font.Size := 14;
+    L.TextSettings.HorzAlign := TTextAlign.Center;
+  end;
+
+  // 7) Força recalculo de layout e define a altura do FlowLayout para ativar o ScrollBox
+  FlowLayout1.RecalcSize; // pede novo layout interno
+
+  // calcula linhas necessárias
+  Rows := (CardCount + Columns - 1) div Columns; // ceiling integer
+
+  // calcula altura total: soma das linhas + gaps + margem (10 px padding)
+  TotalHeight := Rows * CardHeight + (Rows - 1) * GapV + 20;
+
+  // garante no mínimo o tamanho do ScrollBox visível
+  if TotalHeight < ScrollBox1.ClientHeight then
+    TotalHeight := ScrollBox1.ClientHeight;
+
+  FlowLayout1.Height := TotalHeight;
+
+  // garantia final: ScrollBox ocupa toda a área do Form
+  ScrollBox1.Align := TAlignLayout.Client;
+end;
+
+
+// MUDANÇA AQUI: TForm1.FormCreate -> TForm2.FormCreate
+procedure TForm2.FormCreate(Sender: TObject);
+begin
+
+end;
+
+// MUDANÇA AQUI: TForm1.FormResize -> TForm2.FormResize
+procedure TForm2.FormResize(Sender: TObject);
+begin
+  // Para que os cards se ajustem de forma responsiva (2 colunas) em qualquer tela,
+  // você precisa recriá-los com o novo tamanho do FlowLayout.
+
+  // Verifique se os componentes estão prontos
+  if Assigned(FlowLayout1) then
+  begin
+    // Mantém o número atual de cards, apenas para fins de redimensionamento.
+    // Você pode usar um valor fixo se preferir.
+    CreateDynamicCards(FlowLayout1.Controls.Count);
+  end;
+end;
+
+end.

@@ -1,0 +1,241 @@
+﻿unit Unit2;
+
+interface
+
+uses
+  System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
+  FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.Layouts,
+  FMX.StdCtrls, FMX.Objects, FMX.Controls.Presentation, FMX.Effects, System.IOUtils,
+  Unit3;
+
+const
+  CARD_WIDTH_RATIO = 240;
+  CARD_HEIGHT_RATIO = 430;
+  CARD_ASPECT_RATIO = CARD_WIDTH_RATIO / CARD_HEIGHT_RATIO;
+  MIN_CARD_WIDTH = 200;
+  TOTAL_PADDING_HORIZONTAL = 40;
+
+type
+  TForm2 = class(TForm)
+    ScrollBox1: TScrollBox;
+    FlowLayout1: TFlowLayout;
+    Layout2: TLayout;
+    Layout3: TLayout;
+    Image1: TImage;
+    Layout4: TLayout;
+    Text1: TText;
+    Layout5: TLayout;
+    Text2: TText;
+    procedure FormResize(Sender: TObject);
+    procedure FormShow(Sender: TObject);
+  private
+    { Declarações privadas }
+    procedure ClearExistingCards;
+    procedure CalculateCardMetrics(CardCount: Integer; out CardWidth, CardHeight: Single; out Columns: Integer);
+    procedure CreateAndPlaceCards(const CardCount: Integer; const CardWidth, CardHeight: Single; const Columns: Integer);
+    procedure CreateDynamicCards(const CardCount: Integer);
+    function GetImagesPath: string; // Nova função para obter caminho das imagens
+  public
+    { Declarações públicas }
+  end;
+
+var
+  Form2: TForm2;
+
+implementation
+
+{$R *.fmx}
+
+// --- FUNÇÃO PARA OBTER CAMINHO DAS IMAGENS ---
+function TForm2.GetImagesPath: string;
+begin
+  {$IFDEF ANDROID}
+  // Tenta diferentes locais possíveis
+  Result := TPath.GetDocumentsPath + PathDelim;
+  if not TDirectory.Exists(Result) then
+    Result := TPath.GetSharedDocumentsPath + PathDelim;
+  if not TDirectory.Exists(Result) then
+    Result := TPath.GetLibraryPath + PathDelim;
+  {$ELSE}
+  Result := 'C:\Projetos\Diagnose\Assets\Imagens\';
+  {$ENDIF}
+end;
+
+procedure TForm2.ClearExistingCards;
+begin
+  while FlowLayout1.ControlsCount > 0 do
+    FlowLayout1.Controls[0].Free;
+end;
+
+procedure TForm2.CalculateCardMetrics(CardCount: Integer; out CardWidth, CardHeight: Single; out Columns: Integer);
+var
+  AvailableWidth: Single;
+  GapH: Single;
+begin
+  GapH := FlowLayout1.HorizontalGap;
+  AvailableWidth := ScrollBox1.Width;
+
+  if AvailableWidth < 100 then
+    AvailableWidth := Form2.Width;
+
+  AvailableWidth := AvailableWidth - TOTAL_PADDING_HORIZONTAL;
+
+  if (AvailableWidth - GapH) / 2 < MIN_CARD_WIDTH then
+    Columns := 1
+  else
+    Columns := 2;
+
+  CardWidth := (AvailableWidth - (Columns - 1) * GapH) / Columns;
+  if CardWidth < 1 then
+    CardWidth := AvailableWidth;
+
+  CardHeight := CardWidth / CARD_ASPECT_RATIO;
+  if CardHeight < 150 then
+    CardHeight := 150;
+end;
+
+procedure TForm2.CreateAndPlaceCards(const CardCount: Integer; const CardWidth, CardHeight: Single; const Columns: Integer);
+var
+  i: Integer;
+  Frame: TFrame3;
+  Rows: Integer;
+  TotalHeight: Single;
+  GapV: Single;
+  ImageFiles: TArray<string>;
+  ImagePath, FileName: string;
+begin
+  GapV := FlowLayout1.VerticalGap;
+  ImagePath := GetImagesPath; // Usa a função multiplataforma
+
+  // Lê os arquivos de imagem de forma segura
+  try
+    if TDirectory.Exists(ImagePath) then
+      ImageFiles := TDirectory.GetFiles(ImagePath, '*.*',
+        function(const Path: string; const SearchRec: TSearchRec): Boolean
+        begin
+          Result := (Pos('.jpg', LowerCase(SearchRec.Name)) > 0) or
+                   (Pos('.jpeg', LowerCase(SearchRec.Name)) > 0) or
+                   (Pos('.png', LowerCase(SearchRec.Name)) > 0);
+        end)
+    else
+      SetLength(ImageFiles, 0);
+  except
+    on E: Exception do
+      SetLength(ImageFiles, 0);
+  end;
+
+  // Cria os frames dinamicamente
+  for i := 1 to CardCount do
+  begin
+    Frame := TFrame3.Create(nil);
+    Frame.Parent := FlowLayout1;
+
+    Frame.Align := TAlignLayout.None;
+    Frame.Width := CardWidth;
+    Frame.Height := CardHeight;
+
+    // 🔹 Tenta carregar imagem correspondente
+    if (Length(ImageFiles) >= i) then
+    begin
+      FileName := ExtractFileName(ImageFiles[i - 1]);
+
+      if Assigned(Frame.Label1) then
+        Frame.Label1.Text := ChangeFileExt(FileName, '');
+
+      if Assigned(Frame.Image1) then
+      begin
+        try
+          Frame.Image1.Bitmap.LoadFromFile(ImageFiles[i - 1]);
+        except
+          on E: Exception do
+          begin
+            // Fallback para imagem padrão
+            Frame.Image1.Bitmap.Clear(TAlphaColorRec.Gray);
+            if Assigned(Frame.Label1) then
+              Frame.Label1.Text := 'Imagem ' + IntToStr(i);
+          end;
+        end;
+      end;
+    end
+    else
+    begin
+      // 🔹 Placeholder quando não há imagem
+      if Assigned(Frame.Label1) then
+        Frame.Label1.Text := 'Card ' + IntToStr(i);
+
+      if Assigned(Frame.Image1) then
+        Frame.Image1.Bitmap.Clear(TAlphaColorRec.Lightgray);
+    end;
+  end;
+
+  // Ajuste de layout
+  FlowLayout1.RecalcSize;
+
+  Rows := (CardCount + Columns - 1) div Columns;
+  TotalHeight := (Rows * CardHeight) + ((Rows - 1) * GapV) + 20;
+
+  if TotalHeight < ScrollBox1.ClientHeight then
+    TotalHeight := ScrollBox1.ClientHeight;
+
+  FlowLayout1.Height := TotalHeight;
+  ScrollBox1.Align := TAlignLayout.Client;
+end;
+
+procedure TForm2.CreateDynamicCards(const CardCount: Integer);
+var
+  CardWidth, CardHeight: Single;
+  Columns: Integer;
+begin
+  if not Assigned(FlowLayout1) or not Assigned(ScrollBox1) then
+    Exit;
+
+  ClearExistingCards;
+  CalculateCardMetrics(CardCount, CardWidth, CardHeight, Columns);
+  CreateAndPlaceCards(CardCount, CardWidth, CardHeight, Columns);
+end;
+
+uses
+  System.Permissions; // Adicione esta unit
+
+procedure TForm2.FormShow(Sender: TObject);
+const
+  // Permissão padrão para ler arquivos de mídia (como imagens)
+  Permission = 'android.permission.READ_EXTERNAL_STORAGE';
+begin
+  // Verifica se o serviço de permissões está disponível
+  if TPlatformServices.Current.SupportsPlatformService(IFMXPermissionService, IInterface(PermissionsService)) then
+  begin
+    // Solicita a permissão de leitura
+    PermissionsService.RequestPermissions([Permission],
+      procedure(const APermissions: TArray<string>; const AGrantResults: TArray<TPermissionStatus>)
+      begin
+        // Checa o resultado da solicitação
+        if (Length(AGrantResults) > 0) and (AGrantResults[0] = TPermissionStatus.Granted) then
+        begin
+          // Permissão concedida: cria os cartões
+          CreateDynamicCards(8);
+        end
+        else
+        begin
+          // Permissão negada: exibe uma mensagem
+          ShowMessage('Permissão de leitura de armazenamento negada. Não é possível carregar as imagens.');
+          // Cria os cartões com placeholders
+          CreateDynamicCards(8);
+        end;
+      end);
+  end
+  else
+  begin
+    // Serviço de permissões não suportado (ex: Windows)
+    CreateDynamicCards(8);
+  end;
+end;
+procedure TForm2.FormResize(Sender: TObject);
+begin
+  if Assigned(FlowLayout1) and (FlowLayout1.Controls.Count > 0) then
+  begin
+    CreateDynamicCards(FlowLayout1.Controls.Count);
+  end;
+end;
+
+end.

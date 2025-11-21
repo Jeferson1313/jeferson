@@ -1,0 +1,201 @@
+﻿unit Unit2;
+
+interface
+
+uses
+System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants,
+FMX.Types, FMX.Controls, FMX.Forms, FMX.Graphics, FMX.Dialogs, FMX.Layouts,
+FMX.StdCtrls, FMX.Objects, FMX.Controls.Presentation, FMX.Effects,
+System.IOUtils, // Importante para TPath e TDirectory
+  Unit3; // O seu TFrame
+
+type
+TForm2 = class(TForm)
+  ScrollBox1: TScrollBox;
+  FlowLayout1: TFlowLayout;
+  Layout2: TLayout;
+  Layout3: TLayout;
+  Image1: TImage;
+  Layout4: TLayout;
+  Text1: TText;
+  Layout5: TLayout;
+  Text2: TText;
+  procedure FormCreate(Sender: TObject);
+  procedure FormResize(Sender: TObject);
+  procedure FormShow(Sender: TObject);
+  procedure Image1Click(Sender: TObject);
+private
+  { Declarações privadas }
+  procedure CreateDynamicCards; // Removida a contagem, pois lemos da pasta
+  function GetAssetsPath: string;
+public
+  { Declarações públicas }
+  end;
+
+var
+  Form2: TForm2;
+
+implementation
+
+{$R *.fmx}
+
+function TForm2.GetAssetsPath: string;
+begin
+  // Em projetos FMX (Multi-Device), 'Assets' geralmente fica na pasta de recursos
+  // ou no diretório de execução. TPath.GetHomePath é um bom ponto de partida.
+  Result := TPath.Combine(TPath.GetHomePath, 'assets');
+
+  // Para testar em DESKTOP no modo debug, às vezes é necessário usar o caminho do projeto
+  // Se TPath.GetHomePath + 'assets' não funcionar, experimente esta alternativa:
+  // Result := TPath.Combine(TPath.GetDirectoryName(ParamStr(0)), 'assets');
+end;
+
+procedure TForm2.FormShow(Sender: TObject);
+begin
+  // Chamamos sem passar a contagem, pois ela será determinada pelo número de arquivos.
+  CreateDynamicCards;
+end;
+
+procedure TForm2.Image1Click(Sender: TObject);
+begin
+  // Seu código de clique original
+end;
+
+// Constantes para a proporção do card
+const
+  CARD_WIDTH_RATIO = 240;
+  CARD_HEIGHT_RATIO = 430;
+  CARD_ASPECT_RATIO = CARD_WIDTH_RATIO / CARD_HEIGHT_RATIO;
+
+procedure TForm2.CreateDynamicCards;
+var
+  CardIndex: Integer;
+  CardWidth, CardHeight, GapH, GapV: Single;
+  Columns, Rows: Integer;
+  TotalHeight: Single;
+  AvailableWidth: Single;
+  TotalPaddingH: Single;
+  FileList: TStringArray;
+  CurrentFrame: TFrame3;
+  ImageFileName, ImagePath: string;
+  AssetsPath: string;
+begin
+  // 0) Proteção
+  if not Assigned(FlowLayout1) or not Assigned(ScrollBox1) then Exit;
+
+  // 0.5) Define o caminho dos assets
+  AssetsPath := GetAssetsPath;
+
+  // 1) Lista os arquivos da pasta Assets (usando TDirectory.GetFiles)
+  try
+    // Busca por todos os arquivos (recomenda-se especificar, ex: '*.jpg;*.png')
+    FileList := TDirectory.GetFiles(
+      AssetsPath,
+      '*.*',
+      TSearchOption.soTopDirectoryOnly
+    );
+  except
+    on E: Exception do
+    begin
+      ShowMessage('Erro ao acessar a pasta assets (' + AssetsPath + '): ' + E.Message);
+      Exit;
+    end;
+  end;
+
+  // Atualiza a contagem de cards para o número de arquivos encontrados
+  const CardCountActual = Length(FileList);
+  if CardCountActual = 0 then
+  begin
+    ShowMessage('Nenhuma imagem encontrada na pasta: ' + AssetsPath);
+    Exit;
+  end;
+
+  // 2) Libera controles antigos
+  while FlowLayout1.ControlsCount > 0 do
+    FlowLayout1.Controls[0].Free;
+
+  // 3) Ajustes, gaps e PADDINGS
+  GapH := FlowLayout1.HorizontalGap;
+  GapV := FlowLayout1.VerticalGap;
+  // Ajuste esta variável se FlowLayout1.Padding for diferente de 20/20
+  TotalPaddingH := FlowLayout1.Padding.Left + FlowLayout1.Padding.Right;
+
+  // 4) Calcula largura disponível DENTRO da área de padding
+  AvailableWidth := ScrollBox1.Width - TotalPaddingH;
+  if AvailableWidth <= 0 then
+    AvailableWidth := FlowLayout1.Width - TotalPaddingH;
+
+  // 5) Decide número de colunas (Mantendo a lógica de 1 ou 2 colunas)
+  const MIN_CARD_WIDTH = 200;
+  begin
+    CardWidth := (AvailableWidth - GapH) / 2;
+    if CardWidth < MIN_CARD_WIDTH then
+      Columns := 1
+    else
+      Columns := 2;
+  end;
+
+  // 6) Recalcula CardWidth/Height com base nas colunas escolhidas
+  CardWidth := (AvailableWidth - (Columns - 1) * GapH) / Columns;
+  if CardWidth < 1 then CardWidth := AvailableWidth;
+
+  CardHeight := CardWidth / CARD_ASPECT_RATIO;
+  if CardHeight < 150 then CardHeight := 150;
+
+  // 7) Cria os Frames dinamicamente
+  for CardIndex := 0 to CardCountActual - 1 do
+  begin
+    ImagePath := FileList[CardIndex];
+    // Obtém o nome do arquivo sem a extensão, para ser usado como título
+    ImageFileName := TPath.GetFileNameWithoutExtension(ImagePath);
+
+    // Cria o TFrame3
+    CurrentFrame := TFrame3.Create(Self);
+    CurrentFrame.Parent := FlowLayout1;
+    CurrentFrame.Width := CardWidth;
+    CurrentFrame.Height := CardHeight;
+    CurrentFrame.Align := TAlignLayout.None;
+
+    // NOTA: Para garantir que o frame use 100% do espaço,
+    // considere definir o Image1 e Label1 dentro do TFrame3 para Align=Client/Center.
+
+    // Configura o Frame com o caminho da imagem e o nome
+    CurrentFrame.ConfigureFrame(ImagePath, ImageFileName);
+  end;
+
+  // 8) Força recalculo de layout e define a altura do FlowLayout
+  FlowLayout1.RecalcSize;
+
+  // calcula linhas necessárias
+  Rows := (CardCountActual + Columns - 1) div Columns;
+
+  // calcula altura total: soma das linhas + gaps + margem (20 px padding)
+  TotalHeight := Rows * CardHeight + (Rows - 1) * GapV + TotalPaddingH;
+
+  // garante no mínimo o tamanho do ScrollBox visível
+  if TotalHeight < ScrollBox1.ClientHeight then
+    TotalHeight := ScrollBox1.ClientHeight;
+
+  FlowLayout1.Height := TotalHeight;
+
+  // garantia final: ScrollBox ocupa toda a área do Form
+  ScrollBox1.Align := TAlignLayout.Client;
+end;
+
+
+procedure TForm2.FormCreate(Sender: TObject);
+begin
+  // Nada aqui, a criação é em FormShow ou FormResize
+end;
+
+
+procedure TForm2.FormResize(Sender: TObject);
+begin
+  // Recria os cards para que eles se ajustem ao novo tamanho da tela (responsivo)
+  if Assigned(FlowLayout1) then
+  begin
+    CreateDynamicCards;
+  end;
+end;
+
+end.

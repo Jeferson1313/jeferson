@@ -1,0 +1,63 @@
+unit Unit3;
+
+interface
+
+uses
+  System.SysUtils, System.Types, System.UITypes, System.Classes, System.Variants, 
+  FMX.Types, FMX.Graphics, FMX.Controls, FMX.Forms, FMX.Dialogs, FMX.StdCtrls,
+  FMX.Objects, FMX.Controls.Presentation, FMX.Effects,System.IOUtils;
+
+type
+  TFrame3 = class(TFrame)
+    Rectangle1: TRectangle;
+    Image1: TImage;
+    Label1: TLabel;
+    ShadowEffect1: TShadowEffect;
+
+    procedure Rectangle1Tap(Sender: TObject; const Point: TPointF);
+  private
+    procedure ConfigureFrame(const ImagePath, ItemName: string);
+
+    { Private declarations }
+  public
+
+  end;
+
+implementation
+
+{$R *.fmx}
+
+
+procedure TFrame3.ConfigureFrame(const ImagePath: string; const ItemName: string);
+begin
+  // 1. Define o texto no Label1 (o nome do arquivo)
+  Label1.Text := ItemName;
+
+  // 2. Carrega a imagem no Image1
+  try
+    // Verifica se o arquivo existe antes de carregar
+    if TFile.Exists(ImagePath) then
+    begin
+      // Tenta carregar a imagem a partir do caminho completo
+      Image1.Bitmap.LoadFromFile(ImagePath);
+      // Ajusta o modo de exibição da imagem para preencher ou encaixar, se necessário
+      Image1.WrapMode := TImageWrapMode.Fit; // Ou wmOriginal, wmStretch
+    end
+    else
+    begin
+      // Se não encontrar o arquivo, exibe uma mensagem de erro no Label
+      Label1.Text := ItemName + #13#10 + '(Imagem NÃO Encontrada)';
+    end;
+  except
+    on E: Exception do
+      // Captura qualquer erro de carregamento (ex: arquivo corrompido)
+      Label1.Text := 'Erro ao carregar imagem: ' + E.Message;
+  end;
+end;
+
+procedure TFrame3.Rectangle1Tap(Sender: TObject; const Point: TPointF);
+begin
+  ShowMessage('Te amo meu amorzinho! aguarde as próximas atualizações')
+end;
+
+end.
