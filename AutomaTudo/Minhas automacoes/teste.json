@@ -1,0 +1,62 @@
+[
+  {
+    "tipo": "mouse_click",
+    "x": 1300,
+    "y": 243,
+    "btn": "Button.left"
+  },
+  {
+    "tipo": "mouse_click",
+    "x": 1344,
+    "y": 253,
+    "btn": "Button.left"
+  },
+  {
+    "tipo": "mouse_click",
+    "x": 1349,
+    "y": 248,
+    "btn": "Button.right"
+  },
+  {
+    "tipo": "mouse_click",
+    "x": 1149,
+    "y": 300,
+    "btn": "Button.left"
+  },
+  {
+    "tipo": "mouse_click",
+    "x": 796,
+    "y": 975,
+    "btn": "Button.left"
+  },
+  {
+    "tipo": "mouse_click",
+    "x": 796,
+    "y": 975,
+    "btn": "Button.right"
+  },
+  {
+    "tipo": "mouse_click",
+    "x": 873,
+    "y": 631,
+    "btn": "Button.left"
+  },
+  {
+    "tipo": "mouse_click",
+    "x": 1129,
+    "y": 965,
+    "btn": "Button.left"
+  },
+  {
+    "tipo": "mouse_click",
+    "x": 1916,
+    "y": 935,
+    "btn": "Button.left"
+  },
+  {
+    "tipo": "mouse_click",
+    "x": 1911,
+    "y": 956,
+    "btn": "Button.left"
+  }
+]

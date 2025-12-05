@@ -1,0 +1,52 @@
+[
+  {
+    "tipo": "mouse_click",
+    "x": 1037,
+    "y": 1066,
+    "btn": "Button.left"
+  },
+  {
+    "tipo": "mouse_click",
+    "x": 51,
+    "y": 239,
+    "btn": "Button.left"
+  },
+  {
+    "tipo": "hotkey",
+    "combo": [
+      "ctrl",
+      "\u0003"
+    ]
+  },
+  {
+    "tipo": "mouse_click",
+    "x": 1909,
+    "y": 958,
+    "btn": "Button.left"
+  },
+  {
+    "tipo": "mouse_click",
+    "x": 871,
+    "y": 1052,
+    "btn": "Button.left"
+  },
+  {
+    "tipo": "mouse_click",
+    "x": 926,
+    "y": 962,
+    "btn": "Button.left"
+  },
+  {
+    "tipo": "hotkey",
+    "combo": [
+      "ctrl",
+      "\u0016"
+    ]
+  },
+  {
+    "tipo": "mouse_click",
+    "x": 1858,
+    "y": 924,
+    "btn": "Button.left"
+  }
+]
