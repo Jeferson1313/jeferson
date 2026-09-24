@@ -28,6 +28,7 @@ import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.geometry.LatLngBounds
 import org.maplibre.android.maps.MapLibreMap
+import org.maplibre.android.maps.MapLibreMapOptions
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression
@@ -112,7 +113,11 @@ private fun ContextMapView(
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val colors = C.colors
     val holder = remember { MapHolder() }
-    val mapView = remember { MapView(context).also { it.onCreate(null) } }
+    // TextureView em vez de SurfaceView: a SurfaceView não desenha durante as animações de troca de
+    // tela (fade/deslize) e o mapa só aparecia depois de um toque. A TextureView se desenha junto com a tela.
+    val mapView = remember {
+        MapView(context, MapLibreMapOptions.createFromAttributes(context).textureMode(true)).also { it.onCreate(null) }
+    }
 
     val placeClick by rememberUpdatedState(onPlaceClick)
     val mapClick by rememberUpdatedState(onMapClick)
@@ -122,7 +127,7 @@ private fun ContextMapView(
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_START -> { mapView.onStart(); holder.started = true }
-                Lifecycle.Event.ON_RESUME -> mapView.onResume()
+                Lifecycle.Event.ON_RESUME -> { mapView.onResume(); holder.map?.triggerRepaint() }
                 Lifecycle.Event.ON_PAUSE -> mapView.onPause()
                 Lifecycle.Event.ON_STOP -> { mapView.onStop(); holder.started = false }
                 else -> Unit
@@ -156,7 +161,10 @@ private fun ContextMapView(
                 holder.setupLayers(style, colors)
                 holder.render()
                 holder.fittedWithData = holder.places.isNotEmpty()
-                mapView.post { holder.applyCamera(force = true) }
+                mapView.post {
+                    holder.applyCamera(force = true)
+                    map.triggerRepaint()
+                }
             }
             map.addOnMapClickListener { point ->
                 val p = map.projection.toScreenLocation(point)
@@ -177,6 +185,7 @@ private fun ContextMapView(
         holder.allRadii = allRadii
         holder.centerRadiusM = centerRadiusM
         holder.render()
+        holder.map?.triggerRepaint()
         // Os lugares chegam do banco depois do primeiro desenho: enquadra uma vez quando aparecem.
         if (!holder.fittedWithData && (places.isNotEmpty() || me != null) && holder.focus is CameraFocus.FitAll) {
             holder.fittedWithData = holder.style != null
@@ -186,6 +195,7 @@ private fun ContextMapView(
     LaunchedEffect(focus.key) {
         holder.focus = focus
         holder.applyCamera(force = true)
+        holder.map?.triggerRepaint()
     }
 
     AndroidView(factory = { mapView }, modifier = modifier)
