@@ -87,7 +87,10 @@ fun PlaceScreen(vm: AppViewModel, nav: Nav, placeId: Long) {
                         "Vale para ${category.nearby} qualquer, até os que você nunca salvou. O Roteiro avisa quando você passa perto de um (até ${com.roteiro.app.context.StoreFinder.STORE_RADIUS_M} m).",
                         style = Type.secondary, color = c.ink2, modifier = Modifier.padding(top = 4.dp),
                     )
-                    Text("Os estabelecimentos vêm do OpenStreetMap. Algum pode faltar.", style = Type.meta, color = c.ink3, modifier = Modifier.padding(top = 6.dp))
+                    if (category == com.roteiro.core.Category.MARKET) {
+                        Text("Conta como mercado: supermercado, mercearia, açougue, padaria, hortifrúti e loja de conveniência.", style = Type.meta, color = c.ink2, modifier = Modifier.padding(top = 6.dp))
+                    }
+                    Text("Os estabelecimentos vêm do OpenStreetMap. Algum pode faltar; nesse caso, salve-o como lugar.", style = Type.meta, color = c.ink3, modifier = Modifier.padding(top = 6.dp))
                 } else {
                     Text(listOfNotNull(place.address, "raio de ${place.radiusM} m").joinToString(" · "), style = Type.secondary, color = c.ink2, modifier = Modifier.padding(top = 4.dp))
                 }

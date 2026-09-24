@@ -141,3 +141,14 @@ class CategoryTest {
         org.junit.Assert.assertEquals("Boa noite", Words.greeting(3))
     }
 }
+
+class CategoryTagsTest {
+    @Test fun marketIsBroad() {
+        listOf("supermarket", "convenience", "grocery", "butcher", "greengrocer", "bakery").forEach {
+            org.junit.Assert.assertTrue(it, Category.MARKET.matches(mapOf("shop" to it)))
+        }
+        org.junit.Assert.assertFalse(Category.MARKET.matches(mapOf("amenity" to "pharmacy")))
+        org.junit.Assert.assertTrue(Category.BAKERY.matches(mapOf("shop" to "bakery", "name" to "Padaria Pão Quente")))
+        org.junit.Assert.assertTrue(Category.PHARMACY.matches(mapOf("amenity" to "pharmacy")))
+    }
+}

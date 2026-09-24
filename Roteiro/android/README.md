@@ -8,7 +8,7 @@ servidos pelo OpenFreeMap, sem chave de API e sem custo).
 | Área | O que tem |
 |---|---|
 | Lugares | Salvar pelo mapa (pino central + raio de 20 a 500 m), busca de endereço, botão "minha localização", editar, apagar. Tocar num ícone (Casa, Trabalho…) preenche o nome |
-| Qualquer mercado | Tarefas e memórias em **Qualquer mercado / padaria / farmácia / posto**: avisa ao passar perto de qualquer estabelecimento do tipo, mesmo sem cadastro (dados do OpenStreetMap, API Overpass, sem chave) |
+| Qualquer mercado | Tarefas e memórias em **Qualquer mercado / padaria / farmácia / posto** ("mercado" inclui supermercado, mercearia, açougue, padaria, hortifrúti e conveniência): avisa ao passar perto de qualquer estabelecimento do tipo, mesmo sem cadastro (dados do OpenStreetMap, API Overpass, sem chave) |
 | Tempo | Saudação (bom dia/boa tarde/boa noite) e temperatura na tela Agora (Open-Meteo, sem chave); sem internet, mostra o último valor e a hora |
 | Tarefas | Presas a um lugar; lembrar **ao chegar**, **ao sair**, **em um horário** ou **sem aviso**; repetir diária/semanal/mensal |
 | Memórias | Presas a um lugar; "sempre que estiver lá" ou "só na próxima vez"; **campo para anotar lá** (ex.: leitura do medidor) e nota |

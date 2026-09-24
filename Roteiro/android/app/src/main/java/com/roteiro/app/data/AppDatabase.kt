@@ -5,6 +5,7 @@ import androidx.room.Dao
 import androidx.room.Database
 import androidx.room.Delete
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
@@ -26,6 +27,10 @@ interface PlaceDao {
 
     @Insert
     suspend fun insert(place: PlaceEntity): Long
+
+    /** Para os lugares "Qualquer …": se o tipo já existe, não insere de novo. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertIgnore(place: PlaceEntity): Long
 
     @Update
     suspend fun update(place: PlaceEntity)
@@ -67,7 +72,7 @@ interface ItemDao {
     suspend fun deleteAll()
 }
 
-@Database(entities = [PlaceEntity::class, ItemEntity::class], version = 2, exportSchema = true)
+@Database(entities = [PlaceEntity::class, ItemEntity::class], version = 3, exportSchema = true)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun places(): PlaceDao
     abstract fun items(): ItemDao
@@ -80,7 +85,27 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v3: os lugares "Qualquer …" chegaram a ser criados em dobro (duas inicializações ao mesmo tempo).
+         * Junta os repetidos no mais antigo, levando os itens junto, e impede novas cópias.
+         */
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """UPDATE items SET placeId = (
+                        SELECT MIN(p2.id) FROM places p2
+                        WHERE p2.category = (SELECT p1.category FROM places p1 WHERE p1.id = items.placeId))
+                       WHERE placeId IN (SELECT id FROM places WHERE category IS NOT NULL)"""
+                )
+                db.execSQL(
+                    """DELETE FROM places WHERE category IS NOT NULL
+                       AND id NOT IN (SELECT MIN(id) FROM places WHERE category IS NOT NULL GROUP BY category)"""
+                )
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_places_category ON places(category)")
+            }
+        }
+
         fun create(context: Context): AppDatabase =
-            Room.databaseBuilder(context, AppDatabase::class.java, "roteiro.db").addMigrations(MIGRATION_1_2).build()
+            Room.databaseBuilder(context, AppDatabase::class.java, "roteiro.db").addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
     }
 }

@@ -11,7 +11,7 @@ import com.roteiro.core.PlaceInfo
 import com.roteiro.core.RemindWhen
 import com.roteiro.core.Repeat
 
-@Entity(tableName = "places")
+@Entity(tableName = "places", indices = [Index(value = ["category"], unique = true)])
 data class PlaceEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,

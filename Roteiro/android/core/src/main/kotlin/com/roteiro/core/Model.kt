@@ -45,13 +45,21 @@ data class Notice(
 
 /**
  * Tipos de lugar para lembretes do tipo "qualquer mercado".
- * [osm] é a etiqueta do OpenStreetMap usada para achar os estabelecimentos por perto.
+ * [osm] são as etiquetas do OpenStreetMap ("chave=valor") que contam como esse tipo.
+ * "Mercado" é amplo de propósito: em cidade pequena, a compra do dia a dia é no açougue,
+ * na mercearia ou no hortifrúti, não só no supermercado.
  */
-enum class Category(val key: String, val label: String, val any: String, val nearby: String, val osm: String) {
-    MARKET("market", "Mercado", "Qualquer mercado", "um mercado", "shop=supermarket"),
-    BAKERY("bakery", "Padaria", "Qualquer padaria", "uma padaria", "shop=bakery"),
-    PHARMACY("pharmacy", "Farmácia", "Qualquer farmácia", "uma farmácia", "amenity=pharmacy"),
-    FUEL("fuel", "Posto", "Qualquer posto", "um posto de combustível", "amenity=fuel");
+enum class Category(val key: String, val label: String, val any: String, val nearby: String, val osm: List<String>) {
+    MARKET(
+        "market", "Mercado", "Qualquer mercado", "um mercado",
+        listOf("shop=supermarket", "shop=convenience", "shop=grocery", "shop=butcher", "shop=greengrocer", "shop=bakery", "shop=general"),
+    ),
+    BAKERY("bakery", "Padaria", "Qualquer padaria", "uma padaria", listOf("shop=bakery")),
+    PHARMACY("pharmacy", "Farmácia", "Qualquer farmácia", "uma farmácia", listOf("amenity=pharmacy", "shop=chemist")),
+    FUEL("fuel", "Posto", "Qualquer posto", "um posto de combustível", listOf("amenity=fuel"));
+
+    /** O estabelecimento com estas etiquetas conta como este tipo? */
+    fun matches(tags: Map<String, String>): Boolean = osm.any { t -> val (k, v) = t.split("="); tags[k] == v }
 
     companion object {
         fun of(key: String?): Category? = entries.firstOrNull { it.key == key }

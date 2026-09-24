@@ -5,6 +5,8 @@ import com.roteiro.core.ItemKind
 import com.roteiro.core.RemindWhen
 import com.roteiro.core.Rules
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Fonte única de dados do app. Toda mudança que afeta cercas virtuais ou
@@ -26,11 +28,17 @@ class Repository(
 
     /* ---------- Lugares ---------- */
 
-    /** Garante os lugares "Qualquer mercado", "Qualquer padaria"… (criados uma vez). */
-    suspend fun ensureCategoryPlaces() {
+    private val categoryLock = Mutex()
+
+    /**
+     * Garante os lugares "Qualquer mercado", "Qualquer padaria"… uma vez só.
+     * O lock evita a corrida entre a abertura do app e o aviso de "app atualizado",
+     * e o índice único no banco garante que nunca existam dois do mesmo tipo.
+     */
+    suspend fun ensureCategoryPlaces() = categoryLock.withLock {
         val existing = db.places().getAll().mapNotNull { it.category }.toSet()
         Category.entries.filter { it.key !in existing }.forEach { c ->
-            db.places().insert(PlaceEntity(name = c.any, icon = c.key, lat = 0.0, lng = 0.0, radiusM = 0, notifyLeave = false, category = c.key))
+            db.places().insertIgnore(PlaceEntity(name = c.any, icon = c.key, lat = 0.0, lng = 0.0, radiusM = 0, notifyLeave = false, category = c.key))
         }
     }
 

@@ -56,9 +56,10 @@ class StoreFinder(context: Context) {
     /** Busca na internet. Em caso de falha devolve null e mantém a lista anterior. */
     suspend fun refresh(lat: Double, lng: Double, categories: Set<Category>): StoreCache? = withContext(Dispatchers.IO) {
         if (categories.isEmpty()) return@withContext null
-        val filters = categories.joinToString("") { c ->
-            val (k, v) = c.osm.split("=")
-            "nwr[\"$k\"=\"$v\"](around:$SEARCH_RADIUS_M,$lat,$lng);"
+        // Agrupa por chave: nwr["shop"~"^(supermarket|butcher|...)$"](around:...);
+        val byKey = categories.flatMap { it.osm }.distinct().map { it.split("=") }.groupBy({ it[0] }, { it[1] })
+        val filters = byKey.entries.joinToString("") { (k, values) ->
+            "nwr[\"$k\"~\"^(${values.joinToString("|")})$\"](around:$SEARCH_RADIUS_M,$lat,$lng);"
         }
         val query = "[out:json][timeout:10];($filters);out center $MAX_RESULTS;"
         try {
@@ -89,12 +90,15 @@ class StoreFinder(context: Context) {
         val out = mutableListOf<Store>()
         for (i in 0 until elements.length()) {
             val e = elements.getJSONObject(i)
-            val tags = e.optJSONObject("tags") ?: continue
-            val category = categories.firstOrNull { c -> val (k, v) = c.osm.split("="); tags.optString(k) == v } ?: continue
+            val tagsJson = e.optJSONObject("tags") ?: continue
+            val tags = tagsJson.keys().asSequence().associateWith { tagsJson.optString(it) }
             val center = e.optJSONObject("center")
             val lat = if (e.has("lat")) e.getDouble("lat") else center?.optDouble("lat") ?: continue
             val lng = if (e.has("lon")) e.getDouble("lon") else center?.optDouble("lon") ?: continue
-            out += Store("${e.optString("type")}${e.optLong("id")}", category, tags.optString("name").ifBlank { null }, lat, lng)
+            // Uma padaria vale para "qualquer padaria" e para "qualquer mercado": uma entrada por tipo.
+            categories.filter { it.matches(tags) }.forEach { category ->
+                out += Store("${category.key}:${e.optString("type")}${e.optLong("id")}", category, tags["name"]?.ifBlank { null }, lat, lng)
+            }
         }
         return out
     }
@@ -103,7 +107,7 @@ class StoreFinder(context: Context) {
         if (!file.exists()) null else {
             val o = JSONObject(file.readText())
             val arr = o.getJSONArray("stores")
-            StoreCache(
+            if (o.optInt("v") != CACHE_VERSION) null else StoreCache(
                 o.getDouble("lat"), o.getDouble("lng"), o.getLong("at"),
                 o.getString("cats").split(",").mapNotNull { Category.of(it) }.toSet(),
                 (0 until arr.length()).mapNotNull { i ->
@@ -120,12 +124,14 @@ class StoreFinder(context: Context) {
     private fun write(c: StoreCache) {
         val arr = JSONArray()
         c.stores.forEach { s -> arr.put(JSONObject().put("id", s.id).put("c", s.category.key).put("n", s.name ?: "").put("lat", s.lat).put("lng", s.lng)) }
-        val o = JSONObject().put("lat", c.centerLat).put("lng", c.centerLng).put("at", c.fetchedAt)
+        val o = JSONObject().put("v", CACHE_VERSION).put("lat", c.centerLat).put("lng", c.centerLng).put("at", c.fetchedAt)
             .put("cats", c.categories.joinToString(",") { it.key }).put("stores", arr)
         try { file.writeText(o.toString()) } catch (e: Exception) { Log.w("StoreFinder", "Não salvou a lista", e) }
     }
 
     companion object {
+        /** Sobe quando muda o que conta como cada tipo; listas antigas são buscadas de novo. */
+        private const val CACHE_VERSION = 2
         private const val OVERPASS = "https://overpass-api.de/api/interpreter"
         const val SEARCH_RADIUS_M = 3000
         /** Ao sair deste raio em volta da última busca, o app busca de novo. */
