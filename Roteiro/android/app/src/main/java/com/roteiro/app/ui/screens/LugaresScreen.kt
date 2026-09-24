@@ -81,7 +81,11 @@ fun LugaresScreen(vm: AppViewModel, nav: Nav) {
     val snapshot by vm.snapshot.collectAsStateWithLifecycle()
     var selected by rememberSaveable { mutableStateOf<Long?>(null) }
     var focus by remember { mutableStateOf<CameraFocus>(CameraFocus.FitAll(key = 0)) }
-    val fix = snapshot?.fix
+    val perms by vm.permissions.collectAsStateWithLifecycle()
+    // Posição ao vivo enquanto esta tela está aberta; ao sair, o GPS é desligado.
+    val liveFlow = remember(perms.location) { vm.liveLocation() }
+    val live by liveFlow.collectAsStateWithLifecycle(initialValue = null)
+    val fix = live ?: snapshot?.fix
     val me = fix?.let { LatLng(it.lat, it.lng) }
     val c = C.colors
     val geoPlaces = places.filter { it.isGeo }
@@ -106,7 +110,9 @@ fun LugaresScreen(vm: AppViewModel, nav: Nav) {
                 Spacer(Modifier.weight(1f))
                 FloatingIcon(Icons.Outlined.MyLocation, "Minha localização") {
                     selected = null
-                    vm.locateMe { f -> if (f != null) focus = CameraFocus.At(f.lat, f.lng, 16.0, key = System.nanoTime()) }
+                    val now = live
+                    if (now != null) focus = CameraFocus.At(now.lat, now.lng, 16.5, key = System.nanoTime())
+                    else vm.locateMe { f -> if (f != null) focus = CameraFocus.At(f.lat, f.lng, 16.5, key = System.nanoTime()) }
                 }
                 FloatingIcon(Icons.Rounded.Add, "Novo lugar") { nav.go(Routes.placeEdit()) }
             }

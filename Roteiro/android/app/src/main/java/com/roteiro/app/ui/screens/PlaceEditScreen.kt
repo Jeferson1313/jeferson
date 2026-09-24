@@ -80,6 +80,10 @@ import kotlin.math.roundToInt
 fun PlaceEditScreen(vm: AppViewModel, nav: Nav, placeId: Long, presetName: String? = null) {
     val places by vm.places.collectAsStateWithLifecycle()
     val snapshot by vm.snapshot.collectAsStateWithLifecycle()
+    val perms by vm.permissions.collectAsStateWithLifecycle()
+    val liveFlow = remember(perms.location) { vm.liveLocation() }
+    val live by liveFlow.collectAsStateWithLifecycle(initialValue = null)
+    val startFix = live ?: snapshot?.fix
     val context = LocalContext.current
     val focus = LocalFocusManager.current
     val scope = rememberCoroutineScope()
@@ -98,7 +102,7 @@ fun PlaceEditScreen(vm: AppViewModel, nav: Nav, placeId: Long, presetName: Strin
     var saving by remember { mutableStateOf(false) }
 
     // Ponto de partida: o lugar em edição, a posição atual ou o centro padrão.
-    LaunchedEffect(existing?.id, snapshot?.fix) {
+    LaunchedEffect(existing?.id, startFix) {
         if (loaded) return@LaunchedEffect
         if (existing != null) {
             name = existing.name; icon = existing.icon; radius = existing.radiusM.toFloat()
@@ -106,7 +110,7 @@ fun PlaceEditScreen(vm: AppViewModel, nav: Nav, placeId: Long, presetName: Strin
             center = existing.lat to existing.lng
             loaded = true
         } else if (placeId == 0L) {
-            val fix = snapshot?.fix
+            val fix = startFix
             cameraFocus = if (fix != null) CameraFocus.At(fix.lat, fix.lng, 16.5, key = "me") else CameraFocus.FitAll(key = "start")
             if (fix != null) { center = fix.lat to fix.lng; loaded = true }
         }
@@ -146,12 +150,15 @@ fun PlaceEditScreen(vm: AppViewModel, nav: Nav, placeId: Long, presetName: Strin
                     places = places.filter { it.id != placeId && it.isGeo }.map { MapPlace(it.id, it.name, it.lat, it.lng, it.radiusM, 0, false) },
                     modifier = Modifier.fillMaxSize(),
                     focus = cameraFocus ?: CameraFocus.FitAll(key = "wait"),
+                    me = live?.let { org.maplibre.android.geometry.LatLng(it.lat, it.lng) },
                     centerRadiusM = radius.roundToInt(),
                     onCameraIdle = { center = it.latitude to it.longitude },
                 )
                 Box(Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
                     FloatingIcon(Icons.Outlined.MyLocation, "Minha localização") {
-                        vm.locateMe { f -> if (f != null) cameraFocus = CameraFocus.At(f.lat, f.lng, 17.0, key = System.nanoTime()) }
+                        val now = live
+                        if (now != null) cameraFocus = CameraFocus.At(now.lat, now.lng, 17.0, key = System.nanoTime())
+                        else vm.locateMe { f -> if (f != null) cameraFocus = CameraFocus.At(f.lat, f.lng, 17.0, key = System.nanoTime()) }
                     }
                 }
                 // Pino fixo no centro: o usuário move o mapa por baixo dele.

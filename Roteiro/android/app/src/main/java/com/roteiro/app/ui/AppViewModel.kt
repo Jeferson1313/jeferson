@@ -22,6 +22,7 @@ import com.roteiro.core.MemoryShow
 import com.roteiro.core.RemindWhen
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -76,11 +77,14 @@ class AppViewModel(private val app: Application, private val c: AppContainer) : 
         }
     }
 
-    /** Botão "minha localização": lê a posição agora e devolve para centralizar o mapa. */
+    /** Posição em tempo real para os mapas (GPS). Só roda enquanto a tela coleta o Flow. */
+    fun liveLocation(): Flow<Fix> = c.location.updates()
+
+    /** Botão "minha localização": lê a posição agora, com GPS, e devolve para centralizar o mapa. */
     fun locateMe(onFix: (Fix?) -> Unit) = viewModelScope.launch {
-        val snap = c.engine.refresh()
-        if (snap != null) _snapshot.value = snap
-        val fix = snap?.fix ?: _snapshot.value?.fix
+        val precise = c.location.current(precise = true)
+        launch { c.engine.refresh()?.let { _snapshot.value = it } }
+        val fix = precise ?: _snapshot.value?.fix
         if (fix == null) show(if (_permissions.value.location) "Não conseguimos ler sua posição agora." else "Permita a localização em Você para ver onde está.")
         onFix(fix)
     }
