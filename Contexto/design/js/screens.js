@@ -460,4 +460,5 @@
       '<div class="foot">' + btn('Continuar', 'p', null, 'dis') + '</div>' }) });
 
   window.SCREENS = S;
+  window.ART = { obArt1: obArt1, obArt2: obArt2, obArt3: obArt3, obArtPerm: obArtPerm, art: art };
 })();

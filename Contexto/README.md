@@ -8,7 +8,7 @@ Sem IA: a detecção usa cercas virtuais do sistema, Wi-Fi, Bluetooth, NFC, QR C
 
 ## Como abrir
 
-Abra `design/index.html` no navegador. A página tem:
+Abra `design/index.html` (documentação) ou `design/prototipo.html` (demonstração clicável, com simulador de chegada/saída) no navegador. A documentação tem:
 
 | Seção | Entregável |
 |---|---|
@@ -37,7 +37,8 @@ design/
     ├── ui.js         componentes reutilizáveis: phone, tabBar, row, chip, btn,
     │                 field, opt, sheet, toast, banner, empty, place, map, notif…
     ├── screens.js    as 38 telas, montadas só com os componentes de ui.js
-    └── doc.js        fluxogramas, árvore de navegação, tabela e design system
+    ├── doc.js        fluxogramas, árvore de navegação, tabela e design system
+    └── proto.js      protótipo interativo: estado, navegação, criação e simulador
 ```
 
 Os nomes de componentes e tokens foram pensados para migrar direto para React Native,
