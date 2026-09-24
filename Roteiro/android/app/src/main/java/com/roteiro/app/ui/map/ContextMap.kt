@@ -330,7 +330,8 @@ private class MapHolder {
 }
 
 private const val MAP_DELAY_MS = 280L
-private const val STYLE_URL = "https://tiles.openfreemap.org/styles/positron"
+/** Estilo colorido do OpenFreeMap: ruas, nomes de lojas, parques e pontos de interesse. */
+private const val STYLE_URL = "https://tiles.openfreemap.org/styles/liberty"
 private const val FONT_BOLD = "Noto Sans Bold"
 private const val SRC_PLACES = "places"
 private const val SRC_RADIUS = "radius"
