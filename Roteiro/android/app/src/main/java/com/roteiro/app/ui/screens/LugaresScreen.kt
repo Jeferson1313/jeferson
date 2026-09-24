@@ -80,13 +80,16 @@ fun LugaresScreen(vm: AppViewModel, nav: Nav) {
     val ctx by vm.context.collectAsStateWithLifecycle()
     val snapshot by vm.snapshot.collectAsStateWithLifecycle()
     var selected by rememberSaveable { mutableStateOf<Long?>(null) }
-    var fitKey by remember { mutableStateOf(0) }
+    var focus by remember { mutableStateOf<CameraFocus>(CameraFocus.FitAll(key = 0)) }
     val fix = snapshot?.fix
     val me = fix?.let { LatLng(it.lat, it.lng) }
     val c = C.colors
+    val geoPlaces = places.filter { it.isGeo }
+    // Lugares do tipo "qualquer mercado" só aparecem na lista quando têm algo pendente.
+    val typePlaces = places.filter { !it.isGeo && pendingCount(allItems, it.id) > 0 }
 
-    val mapPlaces = places.map { MapPlace(it.id, it.name, it.lat, it.lng, it.radiusM, pendingCount(allItems, it.id), it.id == (selected ?: ctx.currentPlaceId)) }
-    val sorted = places.sortedWith(compareBy<PlaceEntity> { it.id != ctx.currentPlaceId }.thenBy { p -> fix?.let { Geo.distanceM(it.lat, it.lng, p.lat, p.lng) } ?: 0.0 })
+    val mapPlaces = geoPlaces.map { MapPlace(it.id, it.name, it.lat, it.lng, it.radiusM, pendingCount(allItems, it.id), it.id == (selected ?: ctx.currentPlaceId)) }
+    val sorted = geoPlaces.sortedWith(compareBy<PlaceEntity> { it.id != ctx.currentPlaceId }.thenBy { p -> fix?.let { Geo.distanceM(it.lat, it.lng, p.lat, p.lng) } ?: 0.0 })
 
     Column(Modifier.fillMaxSize().background(c.bg)) {
         Box(Modifier.fillMaxWidth().weight(1.1f)) {
@@ -94,14 +97,17 @@ fun LugaresScreen(vm: AppViewModel, nav: Nav) {
                 places = mapPlaces,
                 modifier = Modifier.fillMaxSize(),
                 me = me,
-                focus = CameraFocus.FitAll(key = fitKey),
+                focus = focus,
                 onPlaceClick = { selected = it },
                 onMapClick = { selected = null },
             )
             Row(Modifier.statusBarsPadding().padding(16.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FloatingPill("Lugares")
                 Spacer(Modifier.weight(1f))
-                FloatingIcon(Icons.Outlined.MyLocation, "Enquadrar tudo") { selected = null; fitKey++ }
+                FloatingIcon(Icons.Outlined.MyLocation, "Minha localização") {
+                    selected = null
+                    vm.locateMe { f -> if (f != null) focus = CameraFocus.At(f.lat, f.lng, 16.0, key = System.nanoTime()) }
+                }
                 FloatingIcon(Icons.Rounded.Add, "Novo lugar") { nav.go(Routes.placeEdit()) }
             }
             val sel = places.firstOrNull { it.id == selected }
@@ -116,7 +122,7 @@ fun LugaresScreen(vm: AppViewModel, nav: Nav) {
                 )
             }
         }
-        if (places.isEmpty()) {
+        if (geoPlaces.isEmpty() && typePlaces.isEmpty()) {
             Column(Modifier.fillMaxWidth().weight(1f).padding(horizontal = Space.gutter, vertical = 20.dp)) {
                 Text("Onde suas coisas acontecem?", style = Type.h2, color = c.ink)
                 Text("Salve os lugares que você frequenta. Comece por estes:", style = Type.secondary, color = c.ink2, modifier = Modifier.padding(top = 4.dp))
@@ -133,7 +139,7 @@ fun LugaresScreen(vm: AppViewModel, nav: Nav) {
                 item {
                     Row(Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text("Seus lugares", style = Type.h2, color = c.ink, modifier = Modifier.weight(1f))
-                        Text(if (places.size == 1) "1 lugar" else "${places.size} lugares", style = Type.data, color = c.ink3)
+                        Text(if (geoPlaces.size == 1) "1 lugar" else "${geoPlaces.size} lugares", style = Type.data, color = c.ink3)
                     }
                 }
                 items(sorted, key = { it.id }) { p ->
@@ -144,6 +150,12 @@ fun LugaresScreen(vm: AppViewModel, nav: Nav) {
                         here = here,
                         distance = if (!here) fix?.let { Geo.formatDistance(Geo.distanceM(it.lat, it.lng, p.lat, p.lng)) } else null,
                     )
+                }
+                if (typePlaces.isNotEmpty()) {
+                    item { com.roteiro.app.ui.components.SectionHeader("Qualquer lugar do tipo") }
+                    items(typePlaces, key = { "c${it.id}" }) { p ->
+                        PlaceRow(PlaceIcons.of(p.icon), p.name, placeMeta(allItems, p, false), onClick = { nav.go(Routes.place(p.id)) })
+                    }
                 }
             }
         }

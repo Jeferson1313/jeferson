@@ -26,7 +26,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Login
 import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.outlined.BakeryDining
 import androidx.compose.material.icons.outlined.BookmarkBorder
+import androidx.compose.material.icons.outlined.LocalGasStation
 import androidx.compose.material.icons.outlined.Build
 import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.material.icons.outlined.Group
@@ -92,10 +94,22 @@ object PlaceIcons {
         "friends" to Icons.Outlined.Group,
         "school" to Icons.Outlined.School,
         "food" to Icons.Outlined.Restaurant,
+        "bakery" to Icons.Outlined.BakeryDining,
+        "fuel" to Icons.Outlined.LocalGasStation,
         "place" to Icons.Outlined.Place,
     )
 
-    fun of(key: String): ImageVector = all.firstOrNull { it.first == key }?.second ?: Icons.Outlined.Place
+    /** Nome sugerido ao tocar num ícone (preenche o nome se ele estiver vazio ou for uma sugestão anterior). */
+    val labels: Map<String, String> = mapOf(
+        "home" to "Casa", "work" to "Trabalho", "cart" to "Mercado", "pharmacy" to "Farmácia",
+        "gym" to "Academia", "tool" to "Oficina", "friends" to "Casa de amigo", "school" to "Escola",
+        "food" to "Restaurante", "bakery" to "Padaria", "fuel" to "Posto",
+    )
+
+    fun of(key: String): ImageVector = when (key) {
+        "market" -> Icons.Outlined.ShoppingCart
+        else -> all.firstOrNull { it.first == key }?.second ?: Icons.Outlined.Place
+    }
 
     /** Sugere um ícone a partir do nome digitado. */
     fun guess(name: String): String {
@@ -103,7 +117,9 @@ object PlaceIcons {
         return when {
             "casa" in n || "apart" in n -> "home"
             "trabalho" in n || "escrit" in n || "empresa" in n -> "work"
-            "mercado" in n || "padaria" in n || "feira" in n || "loja" in n -> "cart"
+            "mercado" in n || "feira" in n || "loja" in n -> "cart"
+            "padaria" in n -> "bakery"
+            "posto" in n -> "fuel"
             "farm" in n || "drogaria" in n -> "pharmacy"
             "academia" in n || "gin" in n -> "gym"
             "oficina" in n || "mecân" in n -> "tool"

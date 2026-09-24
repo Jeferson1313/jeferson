@@ -42,3 +42,18 @@ data class Notice(
     val body: String,
     val lines: List<String>,
 )
+
+/**
+ * Tipos de lugar para lembretes do tipo "qualquer mercado".
+ * [osm] é a etiqueta do OpenStreetMap usada para achar os estabelecimentos por perto.
+ */
+enum class Category(val key: String, val label: String, val any: String, val nearby: String, val osm: String) {
+    MARKET("market", "Mercado", "Qualquer mercado", "um mercado", "shop=supermarket"),
+    BAKERY("bakery", "Padaria", "Qualquer padaria", "uma padaria", "shop=bakery"),
+    PHARMACY("pharmacy", "Farmácia", "Qualquer farmácia", "uma farmácia", "amenity=pharmacy"),
+    FUEL("fuel", "Posto", "Qualquer posto", "um posto de combustível", "amenity=fuel");
+
+    companion object {
+        fun of(key: String?): Category? = entries.firstOrNull { it.key == key }
+    }
+}

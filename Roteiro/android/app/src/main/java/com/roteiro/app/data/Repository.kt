@@ -1,5 +1,6 @@
 package com.roteiro.app.data
 
+import com.roteiro.core.Category
 import com.roteiro.core.ItemKind
 import com.roteiro.core.RemindWhen
 import com.roteiro.core.Rules
@@ -24,6 +25,24 @@ class Repository(
     suspend fun item(id: Long) = db.items().get(id)
 
     /* ---------- Lugares ---------- */
+
+    /** Garante os lugares "Qualquer mercado", "Qualquer padaria"… (criados uma vez). */
+    suspend fun ensureCategoryPlaces() {
+        val existing = db.places().getAll().mapNotNull { it.category }.toSet()
+        Category.entries.filter { it.key !in existing }.forEach { c ->
+            db.places().insert(PlaceEntity(name = c.any, icon = c.key, lat = 0.0, lng = 0.0, radiusM = 0, notifyLeave = false, category = c.key))
+        }
+    }
+
+    suspend fun categoryPlace(category: Category) = db.places().getAll().firstOrNull { it.category == category.key }
+
+    /** Tipos que têm algum item pendente (só esses geram busca de estabelecimentos). */
+    suspend fun activeCategories(): Set<Category> {
+        val places = db.places().getAll().filter { !it.isGeo }
+        val items = db.items().getAll()
+        return places.filter { p -> items.any { it.placeId == p.id && it.isAlive && it.remind == RemindWhen.ARRIVE } }
+            .mapNotNull { it.categoryEnum }.toSet()
+    }
 
     suspend fun savePlace(place: PlaceEntity): Long {
         val id = if (place.id == 0L) db.places().insert(place) else place.id.also { db.places().update(place) }
@@ -124,6 +143,7 @@ class Repository(
         db.items().deleteAll()
         db.places().deleteAll()
         prefs.clearAll()
+        ensureCategoryPlaces()
         onPlacesChanged()
         onItemsChanged()
     }

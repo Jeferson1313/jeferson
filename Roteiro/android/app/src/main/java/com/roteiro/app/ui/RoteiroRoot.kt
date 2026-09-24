@@ -5,6 +5,9 @@ package com.roteiro.app.ui
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -136,7 +139,15 @@ private fun MainScaffold(vm: AppViewModel) {
 
     Column(Modifier.fillMaxSize()) {
         Box(Modifier.weight(1f)) {
-            NavHost(controller, startDestination = Routes.AGORA) {
+            NavHost(
+                controller,
+                startDestination = Routes.AGORA,
+                // O padrão do Navigation é um fade de 700 ms, que parece travado. Aqui: rápido e leve.
+                enterTransition = { fadeIn(tween(180)) + slideInHorizontally(tween(220)) { it / 12 } },
+                exitTransition = { fadeOut(tween(120)) },
+                popEnterTransition = { fadeIn(tween(180)) },
+                popExitTransition = { fadeOut(tween(120)) + slideOutHorizontally(tween(200)) { it / 12 } },
+            ) {
                 composable(Routes.AGORA) { AgoraScreen(vm, nav) }
                 composable(Routes.LUGARES) { LugaresScreen(vm, nav) }
                 composable(Routes.LISTA) { ListaScreen(vm, nav) }

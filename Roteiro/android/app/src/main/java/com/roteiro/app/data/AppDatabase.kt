@@ -9,6 +9,8 @@ import androidx.room.Query
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.Update
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -65,13 +67,20 @@ interface ItemDao {
     suspend fun deleteAll()
 }
 
-@Database(entities = [PlaceEntity::class, ItemEntity::class], version = 1, exportSchema = true)
+@Database(entities = [PlaceEntity::class, ItemEntity::class], version = 2, exportSchema = true)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun places(): PlaceDao
     abstract fun items(): ItemDao
 
     companion object {
+        /** v2: lugares do tipo "qualquer mercado" (coluna category). */
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE places ADD COLUMN category TEXT")
+            }
+        }
+
         fun create(context: Context): AppDatabase =
-            Room.databaseBuilder(context, AppDatabase::class.java, "roteiro.db").build()
+            Room.databaseBuilder(context, AppDatabase::class.java, "roteiro.db").addMigrations(MIGRATION_1_2).build()
     }
 }

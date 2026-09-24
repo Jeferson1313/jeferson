@@ -110,3 +110,34 @@ class RulesTest {
         assertNotNull(Words.memorySummary("Casa", MemoryShow.ALWAYS))
     }
 }
+
+class CategoryTest {
+    private fun task(id: Long, title: String) = ItemInfo(id, ItemKind.TASK, title, 99)
+
+    @Test fun marketNoticeNamesStoreAndItem() {
+        val n = Rules.categoryNotice(Category.MARKET, "Mercado Dia", listOf(task(1, "Comprar pão")), 80)!!
+        org.junit.Assert.assertEquals("Tem um mercado aqui perto.", n.title)
+        org.junit.Assert.assertEquals("Mercado Dia, a 80 m: comprar pão.", n.body)
+    }
+
+    @Test fun noticeWithoutStoreNameAndMany() {
+        val n = Rules.categoryNotice(Category.PHARMACY, null, listOf(task(1, "Protetor solar"), task(2, "Dipirona"), task(3, "Curativo")))!!
+        org.junit.Assert.assertEquals("Tem uma farmácia aqui perto.", n.title)
+        org.junit.Assert.assertEquals("Protetor solar, dipirona…", n.body)
+    }
+
+    @Test fun silentWhenNothingPending() {
+        org.junit.Assert.assertNull(Rules.categoryNotice(Category.MARKET, "X", listOf(task(1, "a").copy(done = true))))
+    }
+
+    @Test fun summariesAndGreeting() {
+        org.junit.Assert.assertEquals("Vamos lembrar você ao passar perto de qualquer mercado.",
+            Words.taskSummary("Qualquer mercado", RemindWhen.ARRIVE, Repeat.ONCE, null, Category.MARKET))
+        org.junit.Assert.assertEquals("em qualquer mercado", Words.em("Qualquer mercado"))
+        org.junit.Assert.assertEquals("perto de qualquer farmácia", Words.ao("Qualquer farmácia"))
+        org.junit.Assert.assertEquals("Bom dia", Words.greeting(7))
+        org.junit.Assert.assertEquals("Boa tarde", Words.greeting(14))
+        org.junit.Assert.assertEquals("Boa noite", Words.greeting(22))
+        org.junit.Assert.assertEquals("Boa noite", Words.greeting(3))
+    }
+}

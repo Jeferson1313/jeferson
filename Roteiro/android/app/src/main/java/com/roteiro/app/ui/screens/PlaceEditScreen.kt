@@ -24,6 +24,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.MyLocation
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AlertDialog
@@ -142,12 +143,17 @@ fun PlaceEditScreen(vm: AppViewModel, nav: Nav, placeId: Long, presetName: Strin
         Column(Modifier.fillMaxSize()) {
             Box(Modifier.fillMaxWidth().weight(1f)) {
                 ContextMap(
-                    places = places.filter { it.id != placeId }.map { MapPlace(it.id, it.name, it.lat, it.lng, it.radiusM, 0, false) },
+                    places = places.filter { it.id != placeId && it.isGeo }.map { MapPlace(it.id, it.name, it.lat, it.lng, it.radiusM, 0, false) },
                     modifier = Modifier.fillMaxSize(),
                     focus = cameraFocus ?: CameraFocus.FitAll(key = "wait"),
                     centerRadiusM = radius.roundToInt(),
                     onCameraIdle = { center = it.latitude to it.longitude },
                 )
+                Box(Modifier.align(Alignment.BottomEnd).padding(16.dp)) {
+                    FloatingIcon(Icons.Outlined.MyLocation, "Minha localização") {
+                        vm.locateMe { f -> if (f != null) cameraFocus = CameraFocus.At(f.lat, f.lng, 17.0, key = System.nanoTime()) }
+                    }
+                }
                 // Pino fixo no centro: o usuário move o mapa por baixo dele.
                 Icon(
                     Icons.Outlined.Place, null,
@@ -187,16 +193,27 @@ fun PlaceEditScreen(vm: AppViewModel, nav: Nav, placeId: Long, presetName: Strin
                     keyboardActions = KeyboardActions(onDone = { focus.clearFocus() }),
                 )
                 LazyRow(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(PlaceIcons.all, key = { it.first }) { (key, vector) -> RoteiroChip("", icon == key, { icon = key }, icon = vector) }
+                    items(PlaceIcons.all, key = { it.first }) { (key, vector) ->
+                        RoteiroChip("", icon == key, {
+                            // Tocar no ícone preenche o nome, se ainda não foi digitado um nome próprio.
+                            val previous = PlaceIcons.labels[icon]
+                            if (name.isBlank() || name == previous) PlaceIcons.labels[key]?.let { name = it }
+                            icon = key
+                        }, icon = vector)
+                    }
                 }
                 FieldLabel("Raio", "${radius.roundToInt()} m")
                 Slider(
                     value = radius,
                     onValueChange = { radius = (it / 10).roundToInt() * 10f },
-                    valueRange = 80f..500f,
+                    valueRange = PlaceEntity.MIN_RADIUS_M.toFloat()..PlaceEntity.MAX_RADIUS_M.toFloat(),
                     colors = SliderDefaults.colors(thumbColor = c.bg, activeTrackColor = c.accent, inactiveTrackColor = c.surface2),
                 )
-                Text("Lugares pequenos, como uma loja, funcionam melhor com 80 a 150 m.", style = Type.meta, color = c.ink3)
+                Text(
+                    if (radius < 80f) "Raio pequeno: o celular pode demorar alguns minutos para perceber a chegada, principalmente com a tela desligada."
+                    else "Lugares pequenos, como uma loja, funcionam bem com 80 a 150 m.",
+                    style = Type.meta, color = if (radius < 80f) c.mem else c.ink3,
+                )
                 Spacer(Modifier.height(14.dp))
                 RoteiroButton(
                     if (saving) "Salvando…" else "Salvar lugar",

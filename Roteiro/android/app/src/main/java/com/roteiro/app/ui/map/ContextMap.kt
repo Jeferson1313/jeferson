@@ -2,7 +2,13 @@ package com.roteiro.app.ui.map
 
 import android.graphics.RectF
 import android.view.Gravity
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -63,6 +69,32 @@ sealed interface CameraFocus {
  */
 @Composable
 fun ContextMap(
+    places: List<MapPlace>,
+    modifier: Modifier = Modifier,
+    me: LatLng? = null,
+    focus: CameraFocus = CameraFocus.FitAll(),
+    interactive: Boolean = true,
+    allRadii: Boolean = false,
+    centerRadiusM: Int? = null,
+    onPlaceClick: (Long) -> Unit = {},
+    onMapClick: () -> Unit = {},
+    onCameraIdle: (LatLng) -> Unit = {},
+) {
+    // Criar o MapView é pesado: espera a transição de tela terminar para não travar a animação.
+    var ready by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        delay(MAP_DELAY_MS)
+        ready = true
+    }
+    Box(modifier.background(C.colors.surface)) {
+        if (ready) {
+            ContextMapView(places, Modifier.fillMaxSize(), me, focus, interactive, allRadii, centerRadiusM, onPlaceClick, onMapClick, onCameraIdle)
+        }
+    }
+}
+
+@Composable
+private fun ContextMapView(
     places: List<MapPlace>,
     modifier: Modifier = Modifier,
     me: LatLng? = null,
@@ -297,6 +329,7 @@ private class MapHolder {
     }
 }
 
+private const val MAP_DELAY_MS = 280L
 private const val STYLE_URL = "https://tiles.openfreemap.org/styles/positron"
 private const val FONT_BOLD = "Noto Sans Bold"
 private const val SRC_PLACES = "places"

@@ -18,8 +18,12 @@ object Words {
         return first.endsWith("a") || first.endsWith("ã") || first.endsWith("ção") || first.endsWith("dade")
     }
 
-    /** "em casa", "no Trabalho", "na Farmácia". */
+    private fun isAny(name: String) = name.trim().lowercase(PT).startsWith("qualquer ")
+    private fun anyLower(name: String) = name.trim().lowercase(PT)
+
+    /** "em casa", "no Trabalho", "na Farmácia", "em qualquer mercado". */
     fun em(name: String): String = when {
+        isAny(name) -> "em ${anyLower(name)}"
         isHome(name) -> "em casa"
         feminine(name) -> "na $name"
         else -> "no $name"
@@ -27,6 +31,7 @@ object Words {
 
     /** "de casa", "do Trabalho", "da Farmácia". */
     fun de(name: String): String = when {
+        isAny(name) -> "de ${anyLower(name)}"
         isHome(name) -> "de casa"
         feminine(name) -> "da $name"
         else -> "do $name"
@@ -34,6 +39,7 @@ object Words {
 
     /** "em casa", "ao Trabalho", "à Farmácia" (depois de "chegou"). */
     fun ao(name: String): String = when {
+        isAny(name) -> "perto de ${anyLower(name)}"
         isHome(name) -> "em casa"
         feminine(name) -> "à $name"
         else -> "ao $name"
@@ -48,8 +54,19 @@ object Words {
 
     fun time(minutesOfDay: Int): String = String.format(PT, "%02d:%02d", minutesOfDay / 60, minutesOfDay % 60)
 
-    /** Frase-resumo mostrada antes de salvar uma tarefa. */
-    fun taskSummary(placeName: String?, remind: RemindWhen, repeat: Repeat, timeOfDayMin: Int?): String {
+    /** Saudação pela hora do dia. */
+    fun greeting(hour: Int): String = when (hour) {
+        in 5..11 -> "Bom dia"
+        in 12..17 -> "Boa tarde"
+        else -> "Boa noite"
+    }
+
+    /** Frase-resumo mostrada antes de salvar uma tarefa. [category] = lugar do tipo "qualquer mercado". */
+    fun taskSummary(placeName: String?, remind: RemindWhen, repeat: Repeat, timeOfDayMin: Int?, category: Category? = null): String {
+        if (category != null && remind == RemindWhen.ARRIVE) {
+            val rep = when (repeat) { Repeat.ONCE -> ""; Repeat.DAILY -> ", todo dia"; Repeat.WEEKLY -> ", toda semana"; Repeat.MONTHLY -> ", todo mês" }
+            return "Vamos lembrar você ao passar perto de ${category.any.lowercase(PT)}$rep."
+        }
         val rep = when (repeat) {
             Repeat.ONCE -> ""
             Repeat.DAILY -> ", todo dia"
@@ -65,7 +82,8 @@ object Words {
     }
 
     /** Frase-resumo mostrada antes de salvar uma memória. */
-    fun memorySummary(placeName: String?, show: MemoryShow): String = when {
+    fun memorySummary(placeName: String?, show: MemoryShow, category: Category? = null): String = when {
+        category != null -> "Aparece quando você passar perto de ${category.any.lowercase(PT)}."
         placeName == null -> "Escolha o lugar onde esta memória deve aparecer."
         show == MemoryShow.ALWAYS -> "Aparece na tela Agora sempre que você estiver ${em(placeName)}. Não tem prazo."
         else -> "Aparece na próxima vez que você estiver ${em(placeName)}."

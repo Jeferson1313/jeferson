@@ -12,7 +12,15 @@ data class ContextState(
     val arrivedAt: Long = 0,
     val lastLeftPlaceId: Long? = null,
     val lastLeftAt: Long = 0,
-)
+    /** Perto de um estabelecimento não salvo (lembretes "qualquer mercado"). */
+    val storeId: String? = null,
+    val storeName: String? = null,
+    val storeCategory: String? = null,
+    val storeAt: Long = 0,
+) {
+    /** O contexto de estabelecimento vale por 30 min, ou até sair de perto dele. */
+    fun nearStore(now: Long = System.currentTimeMillis()) = storeCategory != null && now - storeAt < 30 * 60_000
+}
 
 data class Settings(
     val onboardingDone: Boolean = false,
@@ -37,6 +45,10 @@ class Prefs(context: Context) {
         arrivedAt = sp.getLong(K_ARRIVED_AT, 0),
         lastLeftPlaceId = sp.getLong(K_LAST_LEFT, -1).takeIf { it >= 0 },
         lastLeftAt = sp.getLong(K_LAST_LEFT_AT, 0),
+        storeId = sp.getString(K_STORE_ID, null),
+        storeName = sp.getString(K_STORE_NAME, null),
+        storeCategory = sp.getString(K_STORE_CAT, null),
+        storeAt = sp.getLong(K_STORE_AT, 0),
     )
 
     private fun readSettings() = Settings(
@@ -56,6 +68,16 @@ class Prefs(context: Context) {
             putLong(K_LAST_LEFT, placeId)
             putLong(K_LAST_LEFT_AT, at)
         }
+        _context.value = readContext()
+    }
+
+    fun nearStore(id: String, name: String?, category: String, at: Long = System.currentTimeMillis()) {
+        sp.edit { putString(K_STORE_ID, id); putString(K_STORE_NAME, name); putString(K_STORE_CAT, category); putLong(K_STORE_AT, at) }
+        _context.value = readContext()
+    }
+
+    fun clearStore() {
+        sp.edit { remove(K_STORE_ID); remove(K_STORE_NAME); remove(K_STORE_CAT); remove(K_STORE_AT) }
         _context.value = readContext()
     }
 
@@ -87,5 +109,9 @@ class Prefs(context: Context) {
         const val K_ONBOARDING = "onboarding_done"
         const val K_DWELL = "dwell_min"
         const val K_QUIET = "quiet_hours"
+        const val K_STORE_ID = "store_id"
+        const val K_STORE_NAME = "store_name"
+        const val K_STORE_CAT = "store_cat"
+        const val K_STORE_AT = "store_at"
     }
 }

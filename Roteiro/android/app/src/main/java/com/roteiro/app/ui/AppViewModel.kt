@@ -8,7 +8,9 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.roteiro.app.AppContainer
 import com.roteiro.app.RoteiroApp
+import com.roteiro.app.context.Fix
 import com.roteiro.app.context.LocationSnapshot
+import com.roteiro.app.context.Weather
 import com.roteiro.app.context.PermissionState
 import com.roteiro.app.context.Permissions
 import com.roteiro.app.data.ContextState
@@ -37,6 +39,9 @@ class AppViewModel(private val app: Application, private val c: AppContainer) : 
     val context: StateFlow<ContextState> = c.prefs.context
     val settings: StateFlow<Settings> = c.prefs.settings
 
+    /** Tempo no momento (última sincronização com a internet). */
+    val weather: StateFlow<Weather?> = c.weather.weather
+
     private val _snapshot = MutableStateFlow<LocationSnapshot?>(null)
     /** Última leitura de posição (ao abrir o app). */
     val snapshot: StateFlow<LocationSnapshot?> = _snapshot.asStateFlow()
@@ -64,8 +69,23 @@ class AppViewModel(private val app: Application, private val c: AppContainer) : 
             if (before != _permissions.value) c.syncGeofences()
             c.repo.resetRepeats()
             _snapshot.value = c.engine.refresh() ?: _snapshot.value
+            _snapshot.value?.fix?.let { fix ->
+                launch { c.weather.refreshIfStale(fix.lat, fix.lng) }
+                if (c.stores.needsRefresh(fix.lat, fix.lng, c.repo.activeCategories())) c.refreshStores(fix.lat, fix.lng)
+            }
         }
     }
+
+    /** Botão "minha localização": lê a posição agora e devolve para centralizar o mapa. */
+    fun locateMe(onFix: (Fix?) -> Unit) = viewModelScope.launch {
+        val snap = c.engine.refresh()
+        if (snap != null) _snapshot.value = snap
+        val fix = snap?.fix ?: _snapshot.value?.fix
+        if (fix == null) show(if (_permissions.value.location) "Não conseguimos ler sua posição agora." else "Permita a localização em Você para ver onde está.")
+        onFix(fix)
+    }
+
+    fun notNearStore() = c.engine.notNearStore()
 
     fun show(text: String, undo: (() -> Unit)? = null) {
         val m = UiMessage(text, undo)

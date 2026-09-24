@@ -24,7 +24,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Logout
+import androidx.compose.material.icons.outlined.AcUnit
+import androidx.compose.material.icons.outlined.Cloud
 import androidx.compose.material.icons.outlined.LocationOff
+import androidx.compose.material.icons.outlined.Thunderstorm
+import androidx.compose.material.icons.outlined.Umbrella
+import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material.icons.outlined.Place
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.rounded.Add
@@ -42,6 +47,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.roteiro.app.context.Permissions
+import com.roteiro.app.context.Weather
 import com.roteiro.app.data.ItemEntity
 import com.roteiro.app.data.PlaceEntity
 import com.roteiro.app.ui.AppViewModel
@@ -80,11 +86,14 @@ fun AgoraScreen(vm: AppViewModel, nav: Nav) {
     val snapshot by vm.snapshot.collectAsStateWithLifecycle()
     val perms by vm.permissions.collectAsStateWithLifecycle()
     val maybeDismissed by vm.maybeDismissed.collectAsStateWithLifecycle()
-    val context = LocalContext.current
+    val weather by vm.weather.collectAsStateWithLifecycle()
     val askLocation = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { vm.permissionsChanged() }
 
     val byId = places.associateBy { it.id }
+    val geoPlaces = places.filter { it.isGeo }
     val here = ctx.currentPlaceId?.let(byId::get)
+    // Perto de um estabelecimento não salvo com pendências ("qualquer mercado").
+    val storePlace = if (here == null && ctx.nearStore()) places.firstOrNull { it.category == ctx.storeCategory } else null
     val maybe = (snapshot?.detection as? Detection.Maybe)?.takeIf { here == null && !maybeDismissed }?.let { byId[it.place.id] }
     val now = System.currentTimeMillis()
 
@@ -92,7 +101,7 @@ fun AgoraScreen(vm: AppViewModel, nav: Nav) {
         Modifier.fillMaxSize().statusBarsPadding(),
         contentPadding = PaddingValues(start = Space.gutter, end = Space.gutter, bottom = 96.dp),
     ) {
-        item { TopRow() }
+        item { TopRow(weather) }
 
         when {
             !perms.location -> {
@@ -106,14 +115,14 @@ fun AgoraScreen(vm: AppViewModel, nav: Nav) {
                         action = "Permitir localização",
                         onAction = { askLocation.launch(Permissions.foregroundLocation) },
                     )
-                    if (places.isNotEmpty()) {
+                    if (geoPlaces.isNotEmpty()) {
                         SectionHeader("Escolha onde está")
-                        PlaceChips(places) { vm.setHere(it.id) }
+                        PlaceChips(geoPlaces) { vm.setHere(it.id) }
                     }
                 }
                 if (here != null) hereSection(here, allItems, vm, nav)
             }
-            places.isEmpty() -> item {
+            geoPlaces.isEmpty() && storePlace == null -> item {
                 Hero("Agora", "Bem-vindo", "Nenhum lugar salvo ainda", RingState.OUT, live = false)
                 Spacer(Modifier.height(40.dp))
                 EmptyState(
@@ -136,6 +145,20 @@ fun AgoraScreen(vm: AppViewModel, nav: Nav) {
                 }
                 hereSection(here, allItems, vm, nav)
             }
+            storePlace != null -> {
+                item {
+                    val category = storePlace.categoryEnum
+                    Hero(
+                        kicker = "Perto de ${category?.nearby ?: "um lugar"}",
+                        title = ctx.storeName ?: category?.label ?: storePlace.name,
+                        meta = listOf(storePlace.name, since(ctx.storeAt, now)).filter { it.isNotEmpty() }.joinToString("  ·  "),
+                        state = RingState.IN,
+                        live = true,
+                        action = "Não é aqui?" to { vm.notNearStore() },
+                    )
+                }
+                hereSection(storePlace, allItems, vm, nav, showLeave = false)
+            }
             maybe != null -> {
                 item {
                     val acc = snapshot?.fix?.accuracyM?.toInt() ?: 0
@@ -145,7 +168,7 @@ fun AgoraScreen(vm: AppViewModel, nav: Nav) {
                         RoteiroButton("Não estou", onClick = vm::dismissMaybe, kind = ButtonKind.OUTLINE, small = true, modifier = Modifier.weight(1f))
                     }
                     SectionHeader("Ou escolha onde está")
-                    PlaceChips(places.filter { it.id != maybe.id }) { vm.setHere(it.id) }
+                    PlaceChips(geoPlaces.filter { it.id != maybe.id }) { vm.setHere(it.id) }
                 }
             }
             else -> {
@@ -158,7 +181,7 @@ fun AgoraScreen(vm: AppViewModel, nav: Nav) {
                     )
                 }
                 val fix = snapshot?.fix
-                val near = places
+                val near = geoPlaces
                     .map { p -> p to allItems.count { it.placeId == p.id && it.isAlive && it.remind != RemindWhen.TIME } }
                     .filter { it.second > 0 }
                     .sortedBy { (p, _) -> fix?.let { Geo.distanceM(it.lat, it.lng, p.lat, p.lng) } ?: 0.0 }
@@ -173,6 +196,12 @@ fun AgoraScreen(vm: AppViewModel, nav: Nav) {
                         }
                     }
                 }
+                // Itens de "qualquer mercado": aparecem aqui até você passar perto de um.
+                val typeItems = places.filter { !it.isGeo }.flatMap { p -> allItems.filter { it.placeId == p.id && it.isAlive && it.remind != RemindWhen.TIME } }
+                if (typeItems.isNotEmpty()) {
+                    item { SectionHeader("Quando passar perto", typeItems.size) }
+                    items(typeItems, key = { "c${it.id}" }) { ItemRow(it, byId[it.placeId]?.name, onToggle = { vm.toggleDone(it) }, onClick = { nav.item(it) }) }
+                }
                 val snoozed = allItems.filter { it.placeId != null && it.placeId == ctx.lastLeftPlaceId && it.snoozed && !it.done && !it.archived }
                 if (snoozed.isNotEmpty()) {
                     item { SectionHeader("Ficou para a próxima visita", snoozed.size) }
@@ -182,7 +211,7 @@ fun AgoraScreen(vm: AppViewModel, nav: Nav) {
         }
 
         // Hoje, em qualquer lugar: lembretes por horário e itens sem lugar.
-        if (places.isNotEmpty()) {
+        if (geoPlaces.isNotEmpty()) {
             val today = allItems.filter { it.isAlive && (it.remind == RemindWhen.TIME || it.placeId == null) }
                 .sortedBy { it.timeOfDayMin ?: Int.MAX_VALUE }
             if (today.isNotEmpty()) {
@@ -194,7 +223,7 @@ fun AgoraScreen(vm: AppViewModel, nav: Nav) {
 }
 
 /** Seções do lugar atual: pendências, memórias e o que vem a seguir. */
-private fun androidx.compose.foundation.lazy.LazyListScope.hereSection(here: PlaceEntity, all: List<ItemEntity>, vm: AppViewModel, nav: Nav) {
+private fun androidx.compose.foundation.lazy.LazyListScope.hereSection(here: PlaceEntity, all: List<ItemEntity>, vm: AppViewModel, nav: Nav, showLeave: Boolean = true) {
     val recent = System.currentTimeMillis() - 2 * 60 * 60_000
     val shown = all.filter { it.placeId == here.id && !it.archived && it.remind != RemindWhen.TIME && (it.isAlive || (it.done && (it.doneAt ?: 0) > recent)) }
     val tasks = shown.filter { it.isTask }
@@ -221,7 +250,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.hereSection(here: Pla
         }
     }
     val leaveCount = all.count { it.placeId == here.id && it.isTask && it.isAlive && it.remind != RemindWhen.NONE && it.remind != RemindWhen.TIME }
-    item {
+    if (showLeave) item {
         SectionHeader("Próximos gatilhos")
         NextRow(
             "saída", Icons.AutoMirrored.Outlined.Logout, "Ao sair daqui",
@@ -240,14 +269,43 @@ private fun androidx.compose.foundation.lazy.LazyListScope.hereSection(here: Pla
     }
 }
 
+/** Data, e embaixo a saudação com o tempo (da última vez que houve internet). */
 @Composable
-private fun TopRow() {
-    val date = LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, d MMM", Locale.forLanguageTag("pt-BR")))
-        .replaceFirstChar { it.titlecase(Locale.forLanguageTag("pt-BR")) }.replace("-feira", "").replace(".", "")
-    Row(Modifier.fillMaxWidth().height(52.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Logo(22.dp)
-        Text(date, style = Type.secondary.copy(fontWeight = FontWeight.Medium), color = C.colors.ink2)
+private fun TopRow(weather: Weather?) {
+    val c = C.colors
+    val pt = Locale.forLanguageTag("pt-BR")
+    val date = LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, d MMM", pt))
+        .replaceFirstChar { it.titlecase(pt) }.replace("-feira", "").replace(".", "")
+    val now = Calendar.getInstance()
+    val greeting = Words.greeting(now.get(Calendar.HOUR_OF_DAY))
+    Column(Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Logo(22.dp)
+            Text(date, style = Type.secondary.copy(fontWeight = FontWeight.Medium), color = c.ink2)
+        }
+        Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(greeting, style = Type.body.copy(fontWeight = FontWeight.SemiBold), color = c.ink)
+            if (weather != null) {
+                Text("·", style = Type.body, color = c.ink3)
+                Icon(weatherIcon(weather.kind), null, Modifier.size(18.dp), tint = c.ink2)
+                Text("${weather.tempC}°", style = Type.data.copy(fontSize = Type.body.fontSize), color = c.ink)
+                Text(weather.description, style = Type.secondary, color = c.ink2, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+            }
+        }
+        if (weather != null && System.currentTimeMillis() - weather.at > 60 * 60_000) {
+            val at = java.text.SimpleDateFormat(if (System.currentTimeMillis() - weather.at > 20 * 60 * 60_000) "dd/MM 'às' HH:mm" else "HH:mm", pt).format(java.util.Date(weather.at))
+            Text("Tempo de $at, sem internet desde então", style = Type.meta, color = c.ink3, modifier = Modifier.padding(top = 2.dp))
+        }
     }
+}
+
+private fun weatherIcon(kind: Weather.Kind): ImageVector = when (kind) {
+    Weather.Kind.CLEAR -> Icons.Outlined.WbSunny
+    Weather.Kind.CLOUDY -> Icons.Outlined.Cloud
+    Weather.Kind.FOG -> Icons.Outlined.Cloud
+    Weather.Kind.RAIN -> Icons.Outlined.Umbrella
+    Weather.Kind.STORM -> Icons.Outlined.Thunderstorm
+    Weather.Kind.SNOW -> Icons.Outlined.AcUnit
 }
 
 @Composable

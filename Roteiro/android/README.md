@@ -1,4 +1,4 @@
-# Roteiro · Android (versão 1)
+# Roteiro · Android (versão 1.1)
 
 App nativo em **Kotlin + Jetpack Compose**, com mapas **MapLibre** (dados do OpenStreetMap
 servidos pelo OpenFreeMap, sem chave de API e sem custo).
@@ -7,7 +7,9 @@ servidos pelo OpenFreeMap, sem chave de API e sem custo).
 
 | Área | O que tem |
 |---|---|
-| Lugares | Salvar pelo mapa (pino central + raio de 80 a 500 m), busca de endereço, editar, apagar |
+| Lugares | Salvar pelo mapa (pino central + raio de 20 a 500 m), busca de endereço, botão "minha localização", editar, apagar. Tocar num ícone (Casa, Trabalho…) preenche o nome |
+| Qualquer mercado | Tarefas e memórias em **Qualquer mercado / padaria / farmácia / posto**: avisa ao passar perto de qualquer estabelecimento do tipo, mesmo sem cadastro (dados do OpenStreetMap, API Overpass, sem chave) |
+| Tempo | Saudação (bom dia/boa tarde/boa noite) e temperatura na tela Agora (Open-Meteo, sem chave); sem internet, mostra o último valor e a hora |
 | Tarefas | Presas a um lugar; lembrar **ao chegar**, **ao sair**, **em um horário** ou **sem aviso**; repetir diária/semanal/mensal |
 | Memórias | Presas a um lugar; "sempre que estiver lá" ou "só na próxima vez"; **campo para anotar lá** (ex.: leitura do medidor) e nota |
 | Agora | Contexto atual (anel), pendências do lugar, memórias, próximos gatilhos; "Talvez você esteja em…" com GPS impreciso; "Não é aqui?"; fora dos lugares mostra "Perto de você" |
@@ -18,7 +20,16 @@ servidos pelo OpenFreeMap, sem chave de API e sem custo).
 | Você | Estado de cada permissão com o botão para corrigir, tempo mínimo no lugar, horário silencioso (22h–7h), apagar dados |
 | Onboarding | 3 telas de conceito, explicação antes do pedido de localização, "permitir o tempo todo", primeiro lugar |
 
-Fica para a versão 2: Wi-Fi e Bluetooth do carro, "qualquer mercado", rotinas, NFC e QR Code.
+Fica para a versão 2: Wi-Fi e Bluetooth do carro, rotinas, NFC e QR Code.
+
+### Como funciona o "qualquer mercado"
+
+1. Quando existe um item pendente em "Qualquer mercado", o app busca os mercados num raio de 3 km
+   (uma vez; a lista fica salva no aparelho).
+2. Registra uma cerca de 80 m em cada um dos mais próximos (até ~38, por causa do limite do Android)
+   e uma cerca grande de 1,5 km em volta do ponto da busca.
+3. Ao passar 1 min perto de um mercado: "Tem um mercado aqui perto. Mercado Dia: comprar pão."
+4. Ao sair da cerca grande, o app busca de novo em volta da nova posição, sem precisar ser aberto.
 Na barra inferior, a aba **Rotinas** do design deu lugar a **Você** até as rotinas existirem.
 
 ## Como abrir e rodar
@@ -29,6 +40,12 @@ Na barra inferior, a aba **Rotinas** do design deu lugar a **Você** até as rot
 4. Conecte um celular com **Depuração USB** ligada (ou crie um emulador com Google Play) e clique em **Run ▶**.
 
 Linha de comando: `./gradlew :app:assembleDebug` gera `app/build/outputs/apk/debug/app-debug.apk`.
+
+### Versão rápida (release)
+
+A versão *debug* do Compose é bem mais lenta que a final, e as transições podem engasgar.
+Para testar a velocidade real: menu *Build → Select Build Variant…* e troque `app` para **release**,
+depois ▶ Run. Ela vem assinada com a chave de debug só para testes; para publicar, crie uma chave própria.
 Testes das regras: `./gradlew :core:test`.
 
 ## Como testar chegada e saída

@@ -35,12 +35,24 @@ class GeofenceReceiver : BroadcastReceiver() {
             Log.w("GeofenceReceiver", "Erro de cerca: ${event.errorCode}")
             return
         }
-        val ids = event.triggeringGeofences.orEmpty().mapNotNull { it.requestId.toLongOrNull() }
-        val engine = context.container.engine
+        val requestIds = event.triggeringGeofences.orEmpty().map { it.requestId }
+        val placeIds = requestIds.mapNotNull { it.toLongOrNull() }
+        val storeIds = requestIds.filter { it.startsWith(GeofenceSync.STORE_PREFIX) }.map { it.removePrefix(GeofenceSync.STORE_PREFIX) }
+        val refresh = GeofenceSync.REFRESH_ID in requestIds
+        val where = event.triggeringLocation
+        val c = context.container
         launchAsync {
             when (event.geofenceTransition) {
-                Geofence.GEOFENCE_TRANSITION_DWELL -> ids.forEach { engine.onArrive(it, fromSystem = true) }
-                Geofence.GEOFENCE_TRANSITION_EXIT -> ids.forEach { engine.onLeave(it, fromSystem = true) }
+                Geofence.GEOFENCE_TRANSITION_DWELL -> {
+                    placeIds.forEach { c.engine.onArrive(it, fromSystem = true) }
+                    storeIds.forEach { c.engine.onStoreDwell(it) }
+                }
+                Geofence.GEOFENCE_TRANSITION_EXIT -> {
+                    placeIds.forEach { c.engine.onLeave(it, fromSystem = true) }
+                    storeIds.forEach { c.engine.onStoreExit(it) }
+                    // Saiu da região da última busca: busca estabelecimentos em volta da nova posição.
+                    if (refresh && where != null) c.refreshStores(where.latitude, where.longitude)
+                }
             }
         }
     }

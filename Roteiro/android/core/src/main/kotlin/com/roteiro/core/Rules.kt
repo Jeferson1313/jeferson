@@ -88,5 +88,20 @@ object Rules {
         return candidate.toInstant().toEpochMilli()
     }
 
+    /**
+     * Aviso ao passar perto de um estabelecimento de um tipo ("qualquer mercado").
+     * [items] são os itens pendentes presos a esse tipo.
+     */
+    fun categoryNotice(category: Category, storeName: String?, items: List<ItemInfo>, distanceM: Int? = null): Notice? {
+        val pending = items.filter { isAlive(it) && it.remind != RemindWhen.TIME && it.remind != RemindWhen.NONE }
+        if (pending.isEmpty()) return null
+        val title = "Tem ${category.nearby} aqui perto."
+        val where = listOfNotNull(storeName, distanceM?.let { "a $it m" }).joinToString(", ")
+        val what = if (pending.size == 1) Words.lowerFirst(pending[0].title)
+            else pending.take(2).joinToString(", ") { Words.lowerFirst(it.title) } + if (pending.size > 2) "…" else ""
+        val body = (if (where.isNotEmpty()) "$where: " else "") + what + if (what.endsWith("…")) "" else "."
+        return Notice(title, body.replaceFirstChar { it.uppercase() }, pending.take(MAX_LINES).map { it.title })
+    }
+
     const val MAX_LINES = 3
 }

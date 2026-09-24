@@ -13,12 +13,15 @@ android {
         applicationId = "com.roteiro.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
     }
 
     buildTypes {
         release {
+            // Assinado com a chave de debug só para poder instalar e testar a versão rápida.
+            // Antes de publicar na Play Store, troque por uma chave de publicação própria.
+            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

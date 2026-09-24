@@ -23,7 +23,28 @@ class ContextEngine(
     private val prefs: Prefs,
     private val notifier: Notifier,
     private val location: LocationSource,
+    private val stores: StoreFinder,
 ) {
+    /* ---------- Estabelecimentos ("qualquer mercado") ---------- */
+
+    suspend fun onStoreDwell(storeId: String, notify: Boolean = true) {
+        val store = stores.find(storeId) ?: return
+        if (prefs.context.value.storeId == storeId) return
+        val place = repo.categoryPlace(store.category) ?: return
+        prefs.nearStore(storeId, store.name, store.category.key)
+        repo.onVisit(place.id)
+        if (!notify || !place.notifyArrive) return
+        val items = repo.allItems().filter { it.placeId == place.id }.map(ItemEntity::toInfo)
+        Rules.categoryNotice(store.category, store.name, items)?.let { notifier.showArrival(place, it) }
+    }
+
+    suspend fun onStoreExit(storeId: String) {
+        if (prefs.context.value.storeId != storeId) return
+        val store = stores.find(storeId)
+        prefs.clearStore()
+        store?.let { repo.categoryPlace(it.category) }?.let { notifier.cancelArrival(it.id) }
+    }
+
     suspend fun onArrive(placeId: Long, fromSystem: Boolean) {
         val ctx = prefs.context.value
         if (ctx.currentPlaceId == placeId) return
@@ -71,7 +92,7 @@ class ContextEngine(
      */
     suspend fun refresh(): LocationSnapshot? {
         val fix = location.current() ?: return null
-        val places = repo.allPlaces()
+        val places = repo.allPlaces().filter { it.isGeo }
         val detection = Geo.detect(fix.lat, fix.lng, fix.accuracyM, places.map(PlaceEntity::toInfo))
         val current = prefs.context.value.currentPlaceId
         when (detection) {
@@ -83,8 +104,23 @@ class ContextEngine(
             }
             is Detection.Maybe -> Unit
         }
+        refreshStoreContext(fix)
         return LocationSnapshot(fix, detection)
     }
+
+    /** Com o app aberto: está perto de algum estabelecimento com pendência? (sem notificar) */
+    private suspend fun refreshStoreContext(fix: Fix) {
+        val active = repo.activeCategories()
+        val near = stores.nearest(fix.lat, fix.lng, active, 1).firstOrNull()
+            ?.takeIf { Geo.distanceM(fix.lat, fix.lng, it.lat, it.lng) <= StoreFinder.STORE_RADIUS_M + fix.accuracyM.coerceAtMost(60f) }
+        val ctx = prefs.context.value
+        when {
+            near != null && ctx.storeId != near.id -> onStoreDwell(near.id, notify = false)
+            near == null && ctx.storeId != null -> prefs.clearStore()
+        }
+    }
+
+    fun notNearStore() = prefs.clearStore()
 
     /** O usuário escolheu manualmente onde está (ou confirmou o "Talvez"). */
     suspend fun setHereManually(placeId: Long) = onArrive(placeId, fromSystem = false)

@@ -3,6 +3,7 @@ package com.roteiro.app.data
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import com.roteiro.core.Category
 import com.roteiro.core.ItemInfo
 import com.roteiro.core.ItemKind
 import com.roteiro.core.MemoryShow
@@ -23,11 +24,19 @@ data class PlaceEntity(
     val notifyArrive: Boolean = true,
     val notifyLeave: Boolean = true,
     val createdAt: Long = System.currentTimeMillis(),
+    /** Lugar do tipo "qualquer mercado": sem endereço, vale para qualquer estabelecimento da categoria. */
+    val category: String? = null,
 ) {
     fun toInfo() = PlaceInfo(id, name, lat, lng, radiusM, notifyArrive, notifyLeave)
 
+    /** Lugar com endereço (aparece no mapa e tem cerca virtual própria). */
+    val isGeo get() = category == null
+    val categoryEnum get() = Category.of(category)
+
     companion object {
         const val DEFAULT_RADIUS_M = 100
+        const val MIN_RADIUS_M = 20
+        const val MAX_RADIUS_M = 500
     }
 }
 

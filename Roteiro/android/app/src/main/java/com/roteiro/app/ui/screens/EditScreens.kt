@@ -121,14 +121,24 @@ private fun Modifier.topLine(color: androidx.compose.ui.graphics.Color) = this.d
     drawLine(color, androidx.compose.ui.geometry.Offset(0f, 0f), androidx.compose.ui.geometry.Offset(size.width, 0f), 1f)
 }
 
-/** Chips "Onde": lugares salvos (o atual primeiro) + "Novo lugar". */
+/**
+ * Chips "Onde": lugares salvos (o atual primeiro) + "Novo lugar";
+ * embaixo, os lugares por tipo ("Qualquer mercado", "Qualquer farmácia"…).
+ */
 @Composable
 private fun PlacePicker(places: List<PlaceEntity>, currentId: Long?, selected: Long?, allowNone: Boolean, onSelect: (Long?) -> Unit, onNew: () -> Unit) {
-    val ordered = places.sortedBy { it.id != currentId }
+    val ordered = places.filter { it.isGeo }.sortedBy { it.id != currentId }
+    val types = places.filter { !it.isGeo }
     LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         items(ordered, key = { it.id }) { p -> RoteiroChip(p.name, selected == p.id, { onSelect(p.id) }, icon = PlaceIcons.of(p.icon)) }
         if (allowNone) item { RoteiroChip("Sem lugar", selected == null, { onSelect(null) }) }
         item { RoteiroChip("Novo lugar", false, onNew, icon = Icons.Rounded.Add, dashed = true) }
+    }
+    if (types.isNotEmpty()) {
+        Text("Ou em qualquer lugar do tipo", style = Type.meta, color = C.colors.ink3, modifier = Modifier.padding(top = 12.dp, bottom = 8.dp))
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(types, key = { it.id }) { p -> RoteiroChip(p.name, selected == p.id, { onSelect(p.id) }, icon = PlaceIcons.of(p.icon)) }
+        }
     }
 }
 
@@ -162,15 +172,20 @@ fun TaskEditScreen(vm: AppViewModel, nav: Nav, itemId: Long, presetPlace: Long?)
     LaunchedEffect(Unit) { if (itemId == 0L) runCatching { focus.requestFocus() } }
 
     // Sem lugar, só faz sentido lembrar por horário ou sem aviso.
-    val eff = if (placeId == null && (remind == RemindWhen.ARRIVE || remind == RemindWhen.LEAVE)) RemindWhen.NONE else remind
     val place = places.firstOrNull { it.id == placeId }
+    val category = place?.categoryEnum
+    val eff = when {
+        placeId == null && (remind == RemindWhen.ARRIVE || remind == RemindWhen.LEAVE) -> RemindWhen.NONE
+        category != null && remind == RemindWhen.LEAVE -> RemindWhen.ARRIVE // "ao sair" não existe para "qualquer mercado"
+        else -> remind
+    }
 
     EditScaffold(
         title = if (existing != null) "Editar tarefa" else "Nova tarefa",
         onClose = { nav.back() },
         summaryIcon = Icons.Outlined.NotificationsNone,
         summaryTint = c.accent,
-        summary = Words.taskSummary(place?.name, eff, repeat, time),
+        summary = Words.taskSummary(place?.name, eff, repeat, time, category),
         saveLabel = "Salvar tarefa",
         canSave = title.isNotBlank(),
         onSave = {
@@ -185,7 +200,9 @@ fun TaskEditScreen(vm: AppViewModel, nav: Nav, itemId: Long, presetPlace: Long?)
         PlacePicker(places, ctx.currentPlaceId, placeId, allowNone = true, onSelect = { placeId = it }, onNew = { nav.go(Routes.placeEdit()) })
         FieldLabel("Quando lembrar")
         OptionGroup {
-            if (placeId != null) {
+            if (category != null) {
+                OptionRow("Ao passar perto", eff == RemindWhen.ARRIVE, { remind = RemindWhen.ARRIVE }, Icons.AutoMirrored.Outlined.Login, "De ${category.nearby} qualquer, a até ${com.roteiro.app.context.StoreFinder.STORE_RADIUS_M} m")
+            } else if (placeId != null) {
                 OptionRow("Ao chegar", eff == RemindWhen.ARRIVE, { remind = RemindWhen.ARRIVE }, Icons.AutoMirrored.Outlined.Login, "Depois de ${settings.dwellMinutes} min no local")
                 OptionRow("Ao sair", eff == RemindWhen.LEAVE, { remind = RemindWhen.LEAVE }, Icons.AutoMirrored.Outlined.Logout, "Só se ainda estiver pendente")
             }
@@ -216,7 +233,7 @@ fun MemoryEditScreen(vm: AppViewModel, nav: Nav, itemId: Long, presetPlace: Long
     val existing = allItems.firstOrNull { it.id == itemId }
 
     var title by rememberSaveable { mutableStateOf("") }
-    var placeId by rememberSaveable { mutableStateOf(presetPlace ?: ctx.currentPlaceId ?: places.firstOrNull()?.id) }
+    var placeId by rememberSaveable { mutableStateOf(presetPlace ?: ctx.currentPlaceId ?: places.firstOrNull { it.isGeo }?.id) }
     var show by rememberSaveable { mutableStateOf(MemoryShow.ALWAYS) }
     var withField by rememberSaveable { mutableStateOf(false) }
     var fieldLabel by rememberSaveable { mutableStateOf("") }
@@ -230,7 +247,7 @@ fun MemoryEditScreen(vm: AppViewModel, nav: Nav, itemId: Long, presetPlace: Long
             withField = existing.fieldLabel != null; fieldLabel = existing.fieldLabel ?: ""; note = existing.note ?: ""; loaded = true
         }
     }
-    LaunchedEffect(places.isNotEmpty()) { if (placeId == null) placeId = places.firstOrNull()?.id }
+    LaunchedEffect(places.isNotEmpty()) { if (placeId == null) placeId = places.firstOrNull { it.isGeo }?.id ?: places.firstOrNull()?.id }
     LaunchedEffect(Unit) { if (itemId == 0L) runCatching { focus.requestFocus() } }
     val place = places.firstOrNull { it.id == placeId }
 
@@ -239,7 +256,7 @@ fun MemoryEditScreen(vm: AppViewModel, nav: Nav, itemId: Long, presetPlace: Long
         onClose = { nav.back() },
         summaryIcon = Icons.Outlined.BookmarkBorder,
         summaryTint = c.mem,
-        summary = Words.memorySummary(place?.name, show),
+        summary = Words.memorySummary(place?.name, show, place?.categoryEnum),
         saveLabel = "Salvar memória",
         canSave = title.isNotBlank() && placeId != null,
         onSave = {
@@ -300,6 +317,7 @@ fun MemoryScreen(vm: AppViewModel, nav: Nav, itemId: Long) {
             Text(
                 when {
                     place == null -> "Sem lugar"
+                    !place.isGeo -> "Aparece quando você passar ${Words.ao(place.name)}"
                     place.id == ctx.currentPlaceId -> "Você está ${Words.em(place.name)} agora"
                     else -> "Aparece quando você estiver ${Words.em(place.name)}"
                 },

@@ -51,14 +51,19 @@ fun PlaceScreen(vm: AppViewModel, nav: Nav, placeId: Long) {
     val settings by vm.settings.collectAsStateWithLifecycle()
     val c = C.colors
     val place = places.firstOrNull { it.id == placeId } ?: return
-    val here = ctx.currentPlaceId == place.id
+    val here = ctx.currentPlaceId == place.id || (place.category != null && ctx.nearStore() && ctx.storeCategory == place.category)
     val recent = System.currentTimeMillis() - 2 * 60 * 60_000
     val mine = allItems.filter { it.placeId == place.id && !it.archived && (it.isAlive || it.snoozed || (it.done && (it.doneAt ?: 0) > recent)) }
     val tasks = mine.filter { it.isTask }
     val mems = mine.filter { !it.isTask }
 
     LazyColumn(Modifier.fillMaxSize().background(c.bg), contentPadding = PaddingValues(bottom = 40.dp)) {
-        item {
+        if (!place.isGeo) item {
+            Row(Modifier.statusBarsPadding().padding(16.dp).fillMaxWidth()) {
+                FloatingIcon(Icons.AutoMirrored.Outlined.ArrowBack, "Voltar") { nav.back() }
+            }
+        }
+        if (place.isGeo) item {
             Box(Modifier.fillMaxWidth().height(220.dp)) {
                 ContextMap(
                     places = listOf(MapPlace(place.id, place.name, place.lat, place.lng, place.radiusM, 0, selected = true)),
@@ -76,8 +81,17 @@ fun PlaceScreen(vm: AppViewModel, nav: Nav, placeId: Long) {
             androidx.compose.foundation.layout.Column(Modifier.padding(horizontal = Space.gutter).padding(top = 16.dp)) {
                 if (here) Tag("Você está aqui", Tone.ACCENT, Icons.Outlined.RadioButtonChecked)
                 Text(place.name, style = Type.h1, color = c.ink, modifier = Modifier.padding(top = 8.dp))
-                Text(listOfNotNull(place.address, "raio de ${place.radiusM} m").joinToString(" · "), style = Type.secondary, color = c.ink2, modifier = Modifier.padding(top = 4.dp))
-                if (!here) RoteiroButton("Estou aqui agora", onClick = { vm.setHere(place.id) }, kind = ButtonKind.SECONDARY, small = true, modifier = Modifier.padding(top = 12.dp))
+                val category = place.categoryEnum
+                if (category != null) {
+                    Text(
+                        "Vale para ${category.nearby} qualquer, até os que você nunca salvou. O Roteiro avisa quando você passa perto de um (até ${com.roteiro.app.context.StoreFinder.STORE_RADIUS_M} m).",
+                        style = Type.secondary, color = c.ink2, modifier = Modifier.padding(top = 4.dp),
+                    )
+                    Text("Os estabelecimentos vêm do OpenStreetMap. Algum pode faltar.", style = Type.meta, color = c.ink3, modifier = Modifier.padding(top = 6.dp))
+                } else {
+                    Text(listOfNotNull(place.address, "raio de ${place.radiusM} m").joinToString(" · "), style = Type.secondary, color = c.ink2, modifier = Modifier.padding(top = 4.dp))
+                }
+                if (!here && place.isGeo) RoteiroButton("Estou aqui agora", onClick = { vm.setHere(place.id) }, kind = ButtonKind.SECONDARY, small = true, modifier = Modifier.padding(top = 12.dp))
             }
         }
         item { Pad { SectionHeader("Tarefas", tasks.count { it.isAlive }.takeIf { it > 0 }, "+ Adicionar", { nav.go(Routes.task(placeId = place.id)) }) } }
@@ -88,7 +102,13 @@ fun PlaceScreen(vm: AppViewModel, nav: Nav, placeId: Long) {
         if (mems.isEmpty()) item { Pad { Text("Nenhuma memória aqui.", style = Type.secondary, color = c.ink3, modifier = Modifier.padding(vertical = 8.dp)) } }
         items(mems, key = { "m${it.id}" }) { Pad { ItemRow(it, null, onToggle = {}, onClick = { nav.item(it) }) } }
 
-        item {
+        if (!place.isGeo) item {
+            Pad {
+                SectionHeader("Quando lembrar")
+                ToggleRow("Ao passar perto", place.notifyArrive, { vm.togglePlaceNotice(place, arrive = true) }, Icons.AutoMirrored.Outlined.Login, "Depois de 1 min perto do estabelecimento", divider = false)
+            }
+        }
+        if (place.isGeo) item {
             Pad {
                 SectionHeader("Quando lembrar")
                 ToggleRow("Ao chegar", place.notifyArrive, { vm.togglePlaceNotice(place, arrive = true) }, Icons.AutoMirrored.Outlined.Login, "Depois de ${settings.dwellMinutes} min no local")
@@ -100,7 +120,8 @@ fun PlaceScreen(vm: AppViewModel, nav: Nav, placeId: Long) {
     }
 }
 
+/** Margem lateral. É uma Column: vários filhos ficam um embaixo do outro (antes, um Box os sobrepunha). */
 @Composable
 private fun Pad(content: @Composable () -> Unit) {
-    Box(Modifier.padding(horizontal = Space.gutter)) { content() }
+    androidx.compose.foundation.layout.Column(Modifier.fillMaxWidth().padding(horizontal = Space.gutter)) { content() }
 }
