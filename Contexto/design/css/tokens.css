@@ -1,0 +1,103 @@
+/* =========================================================
+   Contexto — design tokens
+   --d-*  : página de documentação
+   --a-*  : aplicativo (usados dentro de .app / .ph)
+   ========================================================= */
+
+:root {
+  /* Tipografia */
+  --font-display: "Schibsted Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-ui: "Onest", "Segoe UI", Roboto, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Espaçamento (base 4) */
+  --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px;
+  --s-5: 20px; --s-6: 24px; --s-8: 32px; --s-10: 40px;
+
+  /* Raios */
+  --r-sm: 8px; --r-md: 12px; --r-lg: 16px; --r-xl: 24px; --r-pill: 999px;
+
+  /* ---------- Documentação ---------- */
+  --d-bg: #F3F4F8;
+  --d-paper: #FFFFFF;
+  --d-ink: #10131B;
+  --d-ink-2: #4A5064;
+  --d-ink-3: #858B9E;
+  --d-line: #E1E4EC;
+  --d-accent: #2F4FF5;
+  --d-accent-soft: #E6EAFF;
+
+  /* ---------- Aplicativo ---------- */
+  --a-bg: #FFFFFF;
+  --a-surface: #F4F5F9;
+  --a-surface-2: #EAECF2;
+  --a-ink: #0F121A;
+  --a-ink-2: #555B6E;
+  --a-ink-3: #9197A8;
+  --a-line: #E6E8EF;
+  --a-accent: #2F4FF5;        /* Cobalto "Sinal" — ações e contexto atual */
+  --a-accent-ink: #FFFFFF;
+  --a-accent-soft: #E9EDFF;
+  --a-mem: #A86400;           /* Âmbar "Marcador" — memórias */
+  --a-mem-soft: #FFF2DB;
+  --a-late: #D5373A;          /* Atrasado / erro */
+  --a-late-soft: #FDECEC;
+  --a-ok: #138A5A;            /* Concluído / ativo */
+  --a-ok-soft: #E3F4EC;
+  --a-scrim: rgba(12, 15, 26, .38);
+  --a-shadow: 0 12px 32px rgba(15, 18, 40, .12), 0 2px 6px rgba(15, 18, 40, .06);
+
+  /* Mapa */
+  --m-land: #EFF1EC;
+  --m-block: #E5E7E1;
+  --m-road: #FFFFFF;
+  --m-park: #D9EAD6;
+  --m-water: #D3E1F4;
+  --m-label: #8C9185;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --d-bg: #0C0E14; --d-paper: #141822; --d-ink: #EDEFF5; --d-ink-2: #A7ADBE;
+    --d-ink-3: #6D7388; --d-line: #252A37; --d-accent: #7D93FF; --d-accent-soft: #1B2244;
+
+    --a-bg: #0F1117; --a-surface: #181B24; --a-surface-2: #20242F; --a-ink: #EEF0F6;
+    --a-ink-2: #A4AABB; --a-ink-3: #6B7185; --a-line: #242834;
+    --a-accent: #7D93FF; --a-accent-ink: #0A0E26; --a-accent-soft: #1C2347;
+    --a-mem: #F2B650; --a-mem-soft: #2B2213; --a-late: #FF6D6D; --a-late-soft: #331B1D;
+    --a-ok: #42CC90; --a-ok-soft: #12291F; --a-scrim: rgba(0, 0, 0, .55);
+    --a-shadow: 0 12px 32px rgba(0, 0, 0, .5), 0 2px 6px rgba(0, 0, 0, .3);
+    --m-land: #171A21; --m-block: #1C1F27; --m-road: #262A34; --m-park: #1A2922;
+    --m-water: #15213A; --m-label: #5E6475;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --d-bg: #0C0E14; --d-paper: #141822; --d-ink: #EDEFF5; --d-ink-2: #A7ADBE;
+  --d-ink-3: #6D7388; --d-line: #252A37; --d-accent: #7D93FF; --d-accent-soft: #1B2244;
+
+  --a-bg: #0F1117; --a-surface: #181B24; --a-surface-2: #20242F; --a-ink: #EEF0F6;
+  --a-ink-2: #A4AABB; --a-ink-3: #6B7185; --a-line: #242834;
+  --a-accent: #7D93FF; --a-accent-ink: #0A0E26; --a-accent-soft: #1C2347;
+  --a-mem: #F2B650; --a-mem-soft: #2B2213; --a-late: #FF6D6D; --a-late-soft: #331B1D;
+  --a-ok: #42CC90; --a-ok-soft: #12291F; --a-scrim: rgba(0, 0, 0, .55);
+  --a-shadow: 0 12px 32px rgba(0, 0, 0, .5), 0 2px 6px rgba(0, 0, 0, .3);
+  --m-land: #171A21; --m-block: #1C1F27; --m-road: #262A34; --m-park: #1A2922;
+  --m-water: #15213A; --m-label: #5E6475;
+}
+
+/* Modo wireframe: mesmas telas, sem cor, sem identidade */
+.wf .ph, .wf .app {
+  --a-accent: #5B5B5B; --a-accent-ink: #FFFFFF; --a-accent-soft: #E4E4E4;
+  --a-mem: #5B5B5B; --a-mem-soft: #E4E4E4; --a-late: #5B5B5B; --a-late-soft: #E4E4E4;
+  --a-ok: #5B5B5B; --a-ok-soft: #E4E4E4;
+  --a-bg: #FFFFFF; --a-surface: #F1F1F1; --a-surface-2: #E4E4E4; --a-ink: #2A2A2A;
+  --a-ink-2: #6A6A6A; --a-ink-3: #9A9A9A; --a-line: #D2D2D2; --a-shadow: none;
+  --m-land: #F4F4F4; --m-block: #EAEAEA; --m-road: #FFFFFF; --m-park: #E2E2E2;
+  --m-water: #DADADA; --m-label: #A0A0A0;
+  --font-display: var(--font-mono);
+  --font-ui: var(--font-mono);
+  color-scheme: light;
+}
