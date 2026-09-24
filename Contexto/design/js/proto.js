@@ -17,7 +17,14 @@
     farmacia: { name: 'Farmácia', icon: 'pill', sub: 'R. da Consolação, 900', x: 262, y: 296, em: 'na Farmácia', de: 'da farmácia', ao: 'à farmácia' },
     academia: { name: 'Academia', icon: 'gym', sub: 'R. Frei Caneca, 320', x: 80, y: 104, em: 'na Academia', de: 'da academia', ao: 'à academia' },
     oficina: { name: 'Oficina', icon: 'tool', sub: 'R. Cardeal Arcoverde, 412', x: 320, y: 330, em: 'na Oficina', de: 'da oficina', ao: 'à oficina' },
-    carro: { name: 'Carro', icon: 'car', sub: 'Bluetooth · HB20 Multimídia', geo: false, em: 'no Carro', de: 'do carro', ao: 'ao carro' }
+    carro: { name: 'Carro', icon: 'car', sub: 'Bluetooth · HB20 Multimídia', geo: false, em: 'no Carro', de: 'do carro', ao: 'ao carro' },
+    any_mercado: { name: 'Qualquer mercado', icon: 'cart', sub: 'Qualquer supermercado perto de você', geo: false, cat: 'mercado', catName: 'mercado', em: 'em qualquer mercado', de: 'do mercado', ao: 'a um mercado' },
+    any_farmacia: { name: 'Qualquer farmácia', icon: 'pill', sub: 'Qualquer farmácia perto de você', geo: false, cat: 'farmacia', catName: 'farmácia', em: 'em qualquer farmácia', de: 'da farmácia', ao: 'a uma farmácia' }
+  };
+  /* Estabelecimentos que o usuário nunca salvou (vêm da categoria do mapa) */
+  const STORES = {
+    loja_m: { name: 'Mercado Dia', icon: 'cart', sub: 'R. Bela Cintra, 210 · fora dos seus lugares', x: 205, y: 262, type: 'mercado', transient: true, em: 'no Mercado Dia', de: 'do Mercado Dia', ao: 'ao Mercado Dia' },
+    loja_f: { name: 'Drogaria São Paulo', icon: 'pill', sub: 'R. Augusta, 2090 · fora dos seus lugares', x: 40, y: 300, type: 'farmacia', transient: true, em: 'na Drogaria São Paulo', de: 'da drogaria', ao: 'à Drogaria São Paulo' }
   };
   const BASE_ITEMS = [
     { id: 1, kind: 'task', t: 'Alimentar o Thor', place: 'casa', when: 'arrive', rep: 'Diária' },
@@ -47,10 +54,13 @@
   let S;
   function reset(skipIntro) {
     const places = clone(BASE_PLACES);
+    places.mercado.type = 'mercado'; places.farmacia.type = 'farmacia';
+    const order = Object.keys(places);
+    Object.assign(places, clone(STORES));
     Object.keys(places).forEach((k) => { places[k].trig = { arrive: true, leave: true }; });
     S = {
       screen: skipIntro ? { n: 'agora' } : { n: 'splash' }, stack: [], tab: 'agora',
-      places: places, order: Object.keys(places), items: clone(BASE_ITEMS), routines: clone(BASE_ROUTINES), triggers: [],
+      places: places, order: order, custom: 0, items: clone(BASE_ITEMS), routines: clone(BASE_ROUTINES), triggers: [],
       nextId: 100, here: skipIntro ? 'casa' : null, lastLeft: null, visit: 1, justArrived: false, uncertain: false,
       locDenied: false, locked: false, notif: null, overlay: null, toast: null, run: null,
       min: 17 * 60 + 40, log: [], draft: null, pinSel: null, listSeg: 'task', listFilter: 'todas',
@@ -64,11 +74,15 @@
 
   /* ---------- Utilidades ---------- */
   const P = (id) => S.places[id];
+  /* num estabelecimento não salvo, novos itens vão para "Qualquer <tipo>" */
+  const homeFor = (p) => p && P(p).transient ? 'any_' + P(p).type : p;
   const clock = () => { const h = Math.floor(S.min / 60) % 24, m = S.min % 60; return h + ':' + String(m).padStart(2, '0'); };
   function addLog(t) { S.log.unshift({ t: t, at: clock() }); S.log = S.log.slice(0, 7); }
   const alive = (it) => !it.done && !it.archived && !it.snoozed;
-  const pendingAt = (p, kind) => S.items.filter((it) => it.place === p && alive(it) && (!kind || it.kind === kind));
-  const shownAt = (p) => S.items.filter((it) => it.place === p && !it.archived && (alive(it) || (it.done && it.doneVisit === S.visit)));
+  /* um item pertence ao lugar p se foi salvo nele ou em "Qualquer <tipo>" do mesmo tipo */
+  const belongs = (it, p) => it.place === p || (!!it.place && !!P(it.place).cat && P(p).type === P(it.place).cat);
+  const pendingAt = (p, kind) => S.items.filter((it) => belongs(it, p) && alive(it) && (!kind || it.kind === kind));
+  const shownAt = (p) => S.items.filter((it) => belongs(it, p) && !it.archived && (alive(it) || (it.done && it.doneVisit === S.visit)));
   function mePos() {
     if (S.here && P(S.here).x != null) return { x: P(S.here).x + 8, y: P(S.here).y + 8 };
     if (S.lastLeft && P(S.lastLeft).x != null) return { x: P(S.lastLeft).x + 34, y: P(S.lastLeft).y + 26 };
@@ -142,13 +156,15 @@
     const pl = P(id), t = pendingAt(id, 'task').length, m = pendingAt(id, 'mem').length;
     const parts = [];
     if (id === S.here) parts.push('<span style="color:var(--a-accent);font-weight:600">Você está aqui</span>');
-    if (pl.geo === false) parts.push('Sem endereço');
+    if (pl.cat) parts.push('Por tipo');
+    else if (pl.geo === false) parts.push('Sem endereço');
     parts.push(t ? t + (t > 1 ? ' tarefas' : ' tarefa') : 'sem tarefas');
     if (m) parts.push(m + (m > 1 ? ' memórias' : ' memória'));
     const trg = [];
     if (pl.geo !== false) { if (pl.trig.arrive) trg.push('arrive'); if (pl.trig.leave) trg.push('leave'); }
     if (pl.wifi) trg.push('wifi');
-    if (pl.geo === false) trg.push('bt');
+    if (pl.cat) trg.push('arrive');
+    else if (pl.geo === false) trg.push('bt');
     return '<div class="pl" data-act="' + (o && o.act ? o.act : 'place:' + id) + '"><span class="pl-ic' + (id === S.here ? ' here' : '') + '">' + I(pl.icon) + '</span><div class="pl-b"><b>' + esc(pl.name) + '</b><small>' + parts.join(' · ') + '</small></div>' +
       (o && o.noTrg ? '' : '<span class="pl-trg">' + trg.map((x) => I(x)).join('') + '</span>') + (id !== S.here && dist(id) ? '<span class="dist">' + dist(id) + '</span>' : '') + '</div>';
   }
@@ -228,7 +244,7 @@
     }
     if (h) {
       const pl = P(h), shown = shownAt(h), pend = pendingAt(h);
-      b += hero(S.justArrived ? 'Você chegou' : 'Agora · você está em', esc(pl.name),
+      b += hero(pl.transient ? 'Perto de ' + (pl.type === 'mercado' ? 'um mercado' : 'uma farmácia') : S.justArrived ? 'Você chegou' : 'Agora · você está em', esc(pl.name),
         '<b>' + esc(pl.sub.split(' · ')[0]) + '</b><span>·</span><span>' + (S.justArrived ? 'agora mesmo' : 'há alguns min') + '</span><span>·</span><span class="link" style="font-size:13px" data-act="nothere">Não é aqui?</span>', 'in');
       if (S.run) {
         const r = S.routines.find((x) => x.id === S.run.id), st = r.steps[S.run.step];
@@ -296,6 +312,8 @@
     if (pl.x != null) {
       b = '<div class="pd-map">' + mapHTML({ vb: vbAround(id, 200, 100), only: id, active: id, radius: { x: pl.x, y: pl.y, r: 34 }, noMe: S.here !== id }) +
         '<div class="map-top" style="justify-content:space-between"><span class="fab-s" data-act="back" aria-label="Voltar">' + I('chevL') + '</span></div></div>';
+    } else if (pl.cat) {
+      b = U.top({ left: back_() }) + '<div class="car-card"><span class="pl-ic" style="background:var(--a-bg)">' + I(pl.icon) + '</span><div><b style="display:block">Vale para qualquer ' + pl.catName + '</b><span class="sub" style="margin:0">Até os que você nunca salvou · raio de 150 m</span></div></div>';
     } else {
       b = U.top({ left: back_() }) + '<div class="car-card"><span class="pl-ic" style="background:var(--a-bg)">' + I(pl.icon) + '</span><div><b style="display:block">Reconhecido pelo Bluetooth</b><span class="sub" style="margin:0">HB20 Multimídia · pareado</span></div></div>';
     }
@@ -306,6 +324,8 @@
     if (pl.x != null) {
       b += '<div class="trg-li">' + I('arrive') + '<div class="b">Ao chegar<small>Depois de ' + S.settings.dwell + ' min no local</small></div>' + tgA(pl.trig.arrive, 'ptrig:' + id + ':arrive') + '</div>' +
         '<div class="trg-li">' + I('leave') + '<div class="b">Ao sair<small>Se algo ficou pendente</small></div>' + tgA(pl.trig.leave, 'ptrig:' + id + ':leave') + '</div>';
+    } else if (pl.cat) {
+      b += '<div class="trg-li">' + I('arrive') + '<div class="b">Ao passar perto<small>De qualquer ' + pl.catName + ', a até 150 m</small></div>' + tgA(pl.trig.arrive, 'ptrig:' + id + ':arrive') + '</div>';
     } else {
       b += '<div class="trg-li">' + I('bt') + '<div class="b">Ao conectar ao HB20<small>Mostra as tarefas do Carro</small></div>' + tgA(pl.trig.arrive, 'ptrig:' + id + ':arrive') + '</div>';
     }
@@ -399,13 +419,14 @@
 
   /* ---------- Criação ---------- */
   const placeChips = (sel, pre) => {
-    const keys = [S.here || 'casa', 'casa', 'mercado', 'trabalho'].filter((k, i, a) => a.indexOf(k) === i).slice(0, 3);
+    const keys = [homeFor(S.here) || 'casa', 'casa', 'mercado', 'trabalho'].filter((k, i, a) => a.indexOf(k) === i).slice(0, 3);
     if (keys.indexOf(sel) < 0) keys.unshift(sel);
+    if (keys.indexOf('any_mercado') < 0) keys.push('any_mercado');
     return '<div class="chips nowrap">' + keys.map((k) => chipA(esc(P(k).name), k === sel, P(k).icon, pre + ':' + k)).join('') + chipA('Outro', false, 'plus', 'pick', 'dash') + '</div>';
   };
   function taskSummary(d) {
     const pl = P(d.place);
-    const w = { arrive: 'ao chegar ' + pl.em.replace('em Casa', 'em casa'), leave: 'ao sair ' + pl.de, time: 'às ' + d.time, none: '' }[d.when];
+    const w = { arrive: pl.cat ? 'ao passar perto de qualquer ' + pl.catName : 'ao chegar ' + pl.em.replace('em Casa', 'em casa'), leave: 'ao sair ' + pl.de, time: 'às ' + d.time, none: '' }[d.when];
     const rep = { 'Uma vez': '', 'Diária': ', todo dia', 'Semanal': ', toda semana', 'Mensal': ', todo mês' }[d.rep];
     if (d.when === 'none') return 'Fica ' + pl.em + ', sem aviso. Aparece quando você abrir o lugar' + rep + '.';
     return 'Vamos lembrar você <b>' + w + '</b>' + rep + '.';
@@ -416,7 +437,9 @@
       '<input class="t-in" id="f-title" placeholder="O que precisa ser feito?" value="' + esc(d.title) + '" autocomplete="off" maxlength="60">' +
       '<div class="fl"><div class="fl-l">Onde</div>' + placeChips(d.place, 'dplace') + '</div>' +
       '<div class="fl"><div class="fl-l">Quando lembrar</div><div class="opts">' +
-      (P(d.place).geo === false
+      (P(d.place).cat
+        ? optA({ icon: 'arrive', t: 'Ao passar perto', s: 'De qualquer ' + P(d.place).catName + ', a até 150 m', radio: d.when === 'arrive', act: 'dwhen:arrive' })
+        : P(d.place).geo === false
         ? optA({ icon: 'bt', t: 'Ao conectar ao carro', s: 'HB20 Multimídia', radio: d.when === 'arrive', act: 'dwhen:arrive' })
         : optA({ icon: 'arrive', t: 'Ao chegar', s: 'Depois de ' + S.settings.dwell + ' min no local', radio: d.when === 'arrive', act: 'dwhen:arrive' }) +
           optA({ icon: 'leave', t: 'Ao sair', s: 'Só se ainda estiver pendente', radio: d.when === 'leave', act: 'dwhen:leave' })) +
@@ -434,7 +457,7 @@
       '<div class="fl"><div class="fl-l">Presa a</div>' +
       (pl.x != null
         ? '<div class="map-wrap" style="height:110px;border-radius:16px">' + mapHTML({ vb: vbAround(d.place, 150, 52), only: d.place, active: d.place, radius: { x: pl.x, y: pl.y, r: 22 }, noMe: true }) + '</div>'
-        : '<div class="car-card">' + I('bt') + '<span>Aparece quando o celular conectar ao HB20.</span></div>') +
+        : '<div class="car-card">' + I(pl.cat ? 'arrive' : 'bt') + '<span>' + (pl.cat ? 'Aparece perto de qualquer ' + pl.catName + '.' : 'Aparece quando o celular conectar ao HB20.') + '</span></div>') +
       '<div style="margin-top:10px">' + placeChips(d.place, 'dplace') + '</div></div>' +
       '<div class="fl"><div class="fl-l">Mostrar</div>' + segA([['always', 'Sempre que estiver lá'], ['once', 'Só na próxima']], d.show, 'dshow') + '</div>' +
       '<div class="fl"><div class="fl-l">Guardar junto<span class="fl-o">opcional</span></div><div class="chips">' + chipA('Nota', d.nota, 'note', 'datt:nota') + chipA('Campo para anotar lá', d.campo, 'edit', 'datt:campo') + '</div></div>';
@@ -444,8 +467,8 @@
 
   SCR.pick = () => {
     let b = U.top({ left: back_(), title: 'Onde?' }) + '<div class="fld">' + I('search') + '<span class="v ph-t">Buscar lugar ou endereço</span></div>' + U.sec('Seus lugares') +
-      S.order.map((k) => placeRow(k, { act: 'picked:' + k, noTrg: true })).join('') +
-      U.sec('Qualquer lugar do tipo') + '<div class="pl" data-act="picked:farmacia"><span class="pl-ic">' + I('pill') + '</span><div class="pl-b"><b>Qualquer farmácia</b><small>Lembra na farmácia mais perto de você</small></div></div>';
+      S.order.filter((k) => !P(k).cat).map((k) => placeRow(k, { act: 'picked:' + k, noTrg: true })).join('') +
+      U.sec('Qualquer lugar do tipo') + S.order.filter((k) => P(k).cat).map((k) => '<div class="pl" data-act="picked:' + k + '"><span class="pl-ic">' + I(P(k).icon) + '</span><div class="pl-b"><b>' + P(k).name + '</b><small>Lembra em qualquer ' + P(k).catName + ' perto de você</small></div></div>').join('');
     return { body: b };
   };
 
@@ -494,7 +517,7 @@
 
   SCR.newplace = () => {
     const d = S.draft;
-    const spot = PIN_SPOTS[Math.min(S.order.length - 7, PIN_SPOTS.length - 1)];
+    const spot = PIN_SPOTS[Math.min(S.custom, PIN_SPOTS.length - 1)];
     let body = '<div class="map-wrap" style="position:absolute;inset:0 0 380px 0">' + U.map({ vb: (spot[0] - 90) + ' ' + (spot[1] - 75) + ' 180 150', radius: { x: spot[0], y: spot[1], r: 36 }, pins: [{ x: spot[0], y: spot[1], ic: d.icon, active: true }] }) +
       '<div class="map-top"><span class="fab-s" data-act="back" aria-label="Fechar">' + I('x') + '</span></div></div>' +
       '<div class="sheet" style="padding-bottom:16px;box-shadow:none;border-top:1px solid var(--a-line);max-height:none">' +
@@ -540,7 +563,7 @@
         '<div class="btn btn-g" style="height:44px;margin-top:8px;color:var(--a-late)" data-act="archive:' + it.id + '">Não preciso mais</div></div>';
     }
     if (o.n === 'leave') {
-      const p = S.lastLeft, pend = S.items.filter((it) => it.place === p && it.kind === 'task' && !it.archived && !it.snoozed && (!it.done || it.doneVisit === S.visit));
+      const p = S.lastLeft, pend = S.items.filter((it) => belongs(it, p) && it.kind === 'task' && !it.archived && !it.snoozed && (!it.done || it.doneVisit === S.visit));
       return sc + '<div class="sheet' + a + '"><div class="grab"></div><div style="display:flex;gap:14px;align-items:center"><span class="add-ic t">' + I('leave') + '</span><div><div class="h2">Saindo ' + P(p).de + '?</div><div class="sub" style="margin-top:2px">Antes de ir, ainda falta:</div></div></div>' +
         '<div style="margin-top:10px">' + pend.map((it) => '<div class="row' + (it.done ? ' done' : '') + '"><span class="row-lead"><span class="chk' + (it.done ? ' on' : '') + '">' + (it.done ? I('check') : '') + '</span></span><div class="row-b"><div class="row-t">' + esc(it.t) + '</div></div><div class="row-trail">' + (it.done ? '' : btnA('Peguei', 's', 'toggle:' + it.id, null, 'sm')) + '</div></div>').join('') + '</div>' +
         '<div class="btn-row" style="margin-top:14px">' + btnA('Próxima vez', 'o', 'nnext') + btnA('Peguei tudo', 'p', 'allgot') + '</div>' +
@@ -592,12 +615,13 @@
      AÇÕES
      ========================================================= */
   function newDraft(kind, place) {
-    const p = place || S.here || 'mercado';
+    const p = place || homeFor(S.here) || 'mercado';
     if (kind === 'task') S.draft = { kind: 'task', title: '', place: p, when: P(p).geo === false ? 'arrive' : 'arrive', rep: 'Uma vez', time: '18:00' };
     if (kind === 'mem') S.draft = { kind: 'mem', title: '', place: p, show: 'always', nota: false, campo: true };
     if (kind === 'trig') S.draft = { kind: 'trig', step: 1, type: place ? 'arrive' : 'car', detail: place && P(place).x != null ? place : 'HB20 · Multimídia', then: 'tasks', weekdays: false, once: true };
     if (kind === 'place') S.draft = { kind: 'place', title: '', icon: 'friends', wifi: false };
-    if (kind === 'trig' && place && P(place).geo === false) { S.draft.type = 'car'; S.draft.detail = 'HB20 · Multimídia'; }
+    if (kind === 'trig' && place && P(place).cat) { S.draft.detail = P(place).cat; }
+    else if (kind === 'trig' && place && P(place).geo === false) { S.draft.type = 'car'; S.draft.detail = 'HB20 · Multimídia'; }
   }
   function readTitle() { const el = document.getElementById('f-title'); if (el && S.draft) S.draft.title = el.value; }
   function complete(it, viaNotif) {
@@ -609,19 +633,24 @@
     if (S.here) return;
     S.min += 14; S.uncertain = false;
     const pl = P(p);
-    addLog('Cerca virtual: entrou ' + pl.em.replace('em Casa', 'em Casa'));
+    addLog(pl.transient ? 'Mapa: ' + pl.name + ' (categoria ' + pl.type + ') a 80 m' : 'Cerca virtual: entrou ' + pl.em);
     if (S.locDenied && !pl.wifi) { addLog('Localização negada: a chegada não foi percebida'); render('none'); return; }
-    addLog(pl.wifi ? 'Wi-Fi ' + pl.wifi + ' conectado · confirmado na hora' : 'Ficou ' + S.settings.dwell + ' min no local · chegada confirmada');
+    addLog(pl.transient ? 'Procurando itens de "qualquer ' + pl.type + '"' : pl.wifi ? 'Wi-Fi ' + pl.wifi + ' conectado · confirmado na hora' : 'Ficou ' + S.settings.dwell + ' min no local · chegada confirmada');
     S.here = p; S.lastLeft = null; S.visit++; S.justArrived = true;
-    S.items.forEach((it) => { if (it.place === p && it.snoozed) it.snoozed = false; });
+    S.items.forEach((it) => { if (belongs(it, p) && it.snoozed) it.snoozed = false; });
     if (p === 'mercado') S.tour.arrived = true;
     if (!S.locked) { S.stack = []; S.tab = 'agora'; S.screen = { n: 'agora' }; S.overlay = null; }
     const pend = pendingAt(p);
     const r1 = S.routines.find((r) => r.id === 'r1');
     if (p === 'casa' && r1.on) { S.run = { id: 'r1', step: 0 }; addLog('Rotina "Cheguei em casa" iniciada'); }
     if (!pl.trig.arrive) { addLog('Aviso de chegada desligado neste lugar'); render('fade'); return; }
-    if (!pend.length) { addLog('Nada pendente aqui · sem notificação'); render('fade'); return; }
+    if (!pend.length) { addLog(pl.transient ? 'Nada pendente para "qualquer ' + pl.type + '" · sem aviso' : 'Nada pendente aqui · sem notificação'); if (pl.transient) { S.here = null; S.justArrived = false; } render('fade'); return; }
     addLog('1 notificação com ' + pend.length + (pend.length > 1 ? ' itens' : ' item'));
+    if (pl.transient) {
+      S.tour.anyStore = true;
+      S.notif = { kind: 'arrive', open: 'nview', sub: 'Qualquer ' + (pl.type === 'mercado' ? 'mercado' : 'farmácia'), title: 'Tem ' + (pl.type === 'mercado' ? 'um mercado' : 'uma farmácia') + ' aqui perto.', body: pl.name + ', a 80 m: ' + pend.map((x) => x.t.charAt(0).toLowerCase() + x.t.slice(1)).join(', ') + '.', actions: [['Ver', 'nview'], ['Agora não', 'ndismiss']] };
+      render('fade'); return;
+    }
     S.notif = { kind: 'arrive', sub: pl.name, title: 'Você chegou ' + pl.ao + '.', body: (pend.length === 1 ? pend[0].t + '.' : pend.length + ' coisas estão esperando por você aqui.') + (S.run && p === 'casa' ? ' A rotina "Cheguei em casa" começou.' : ''), open: 'nview', actions: [['Ver', 'nview'], ['Mais tarde', 'ndismiss']] };
     render('fade');
   }
@@ -704,9 +733,9 @@
       case 'nview': S.stack = []; S.tab = 'agora'; S.screen = { n: 'agora' }; return render('fade');
       case 'ndismiss': return render('none');
       case 'ndone': { const p = S.lastLeft; const it = pendingAt(p, 'task')[0]; if (it) complete(it, true); toast('Concluída sem abrir o app.'); addLog('"' + (it ? it.t : '') + '" concluída pela notificação'); return render('none'); }
-      case 'nnext': { const p = S.lastLeft; S.items.forEach((it) => { if (it.place === p && it.kind === 'task' && alive(it)) it.snoozed = true; }); S.overlay = null; toast('Fica para a próxima vez que você for ' + (p === 'casa' ? 'para casa' : P(p).ao) + '.'); addLog('Pendências adiadas para a próxima visita'); return render('none'); }
+      case 'nnext': { const p = S.lastLeft; S.items.forEach((it) => { if (belongs(it, p) && it.kind === 'task' && alive(it)) it.snoozed = true; }); S.overlay = null; toast('Fica para a próxima vez que você for ' + (p === 'casa' ? 'para casa' : P(p).transient ? P('any_' + P(p).type).ao : P(p).ao) + '.'); addLog('Pendências adiadas para a próxima visita'); return render('none'); }
       case 'nleave': S.stack = []; S.tab = 'agora'; S.screen = { n: 'agora' }; S.overlay = { n: 'leave' }; return render('fade');
-      case 'allgot': { const p = S.lastLeft; S.items.forEach((it) => { if (it.place === p && it.kind === 'task' && alive(it)) complete(it); }); S.overlay = null; toast('Tudo feito.'); return render('none'); }
+      case 'allgot': { const p = S.lastLeft; S.items.forEach((it) => { if (belongs(it, p) && it.kind === 'task' && alive(it)) complete(it); }); S.overlay = null; toast('Tudo feito.'); return render('none'); }
       case 'stillhere': S.here = S.lastLeft; S.lastLeft = null; S.overlay = null; addLog('Saída cancelada pelo usuário · raio recalibrado'); return render('none');
       case 'unlock': S.locked = false; S.notif = null; return render('fade');
       /* criação */
@@ -738,7 +767,7 @@
       }
       case 'quick': {
         const q = document.getElementById('f-quick'); if (!q || !q.value.trim() || !S.here) return;
-        S.items.push({ id: S.nextId++, kind: 'mem', t: q.value.trim(), place: S.here });
+        S.items.push({ id: S.nextId++, kind: 'mem', t: q.value.trim(), place: homeFor(S.here) });
         addLog('Captura rápida ' + P(S.here).em + ': "' + q.value.trim() + '"');
         S.overlay = null; S.quickDraft = ''; toast('Memória salva ' + P(S.here).em + '.'); return render('none');
       }
@@ -762,7 +791,7 @@
       case 'pwifi': readTitle(); S.draft.wifi = !S.draft.wifi; return render('none');
       case 'saveplace': {
         readTitle(); const d = S.draft; if (!d.title.trim()) return;
-        const spot = PIN_SPOTS[Math.min(S.order.length - 7, PIN_SPOTS.length - 1)], id = 'p' + S.nextId++;
+        const spot = PIN_SPOTS[Math.min(S.custom, PIN_SPOTS.length - 1)], id = 'p' + S.nextId++; S.custom++;
         const nm = d.title.trim();
         S.places[id] = { name: nm, icon: d.icon, sub: 'Endereço marcado no mapa', x: spot[0], y: spot[1], em: 'em ' + nm, de: 'de ' + nm, ao: 'em ' + nm, trig: { arrive: true, leave: true }, wifi: d.wifi ? 'Rede_' + nm.split(' ')[0] : null };
         S.order.push(id); addLog('Novo lugar: ' + nm);
@@ -815,6 +844,7 @@
     ['done', 'Conclua um item tocando no círculo.'],
     ['leftMercado', '<b>Saia do mercado</b> sem terminar tudo.'],
     ['car', '<b>Conecte ao carro</b>.'],
+    ['anyStore', 'Crie "Comprar pão" em <b>Qualquer mercado</b> e <b>passe perto de um mercado qualquer</b>.'],
     ['explore', 'Explore <b>Lugares</b>, <b>Lista</b> e <b>Rotinas</b>.']
   ];
   function renderSim() {
@@ -831,6 +861,8 @@
       (S.here && !intro ? '<p style="font-size:13px">Para chegar a outro lugar, saia do atual primeiro.</p>' : '') +
       '<h3>Outros sinais</h3><div class="sbtns">' +
       '<button class="sb-btn" data-sim="car" ' + (intro ? 'disabled' : '') + '>' + I('car') + 'Conectar ao carro</button>' +
+      '<button class="sb-btn" data-sim="arrive:loja_m" ' + (S.here || intro ? 'disabled' : '') + '>' + I('cart') + 'Passar perto de um mercado qualquer</button>' +
+      '<button class="sb-btn" data-sim="arrive:loja_f" ' + (S.here || intro ? 'disabled' : '') + '>' + I('pill') + 'Passar perto de uma farmácia qualquer</button>' +
       '<button class="sb-btn" data-sim="weak" ' + (S.here || intro || S.locDenied ? 'disabled' : '') + '>' + I('signal') + 'Sinal fraco perto do mercado</button></div>' +
       '<h3>Aparelho</h3>' +
       '<div class="sw-row"><span>Celular bloqueado<small>Os avisos aparecem na tela de bloqueio</small></span><button class="sw" role="switch" aria-checked="' + S.locked + '" data-sim="lock" aria-label="Celular bloqueado" ' + (intro ? 'disabled' : '') + '></button></div>' +
