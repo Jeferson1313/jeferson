@@ -1,0 +1,73 @@
+package com.roteiro.core
+
+import java.util.Locale
+
+/**
+ * Preposições em português para nomes de lugar escolhidos pelo usuário.
+ * Sem gênero gramatical conhecido, usamos uma regra simples pela primeira palavra:
+ * termina em "a" → feminino ("na Farmácia"), senão masculino ("no Trabalho").
+ * "Casa" sozinha é tratada como em "em casa".
+ */
+object Words {
+    private val PT = Locale.forLanguageTag("pt-BR")
+
+    private fun isHome(name: String) = name.trim().equals("casa", ignoreCase = true)
+
+    private fun feminine(name: String): Boolean {
+        val first = name.trim().split(' ').firstOrNull()?.lowercase(PT) ?: return false
+        return first.endsWith("a") || first.endsWith("ã") || first.endsWith("ção") || first.endsWith("dade")
+    }
+
+    /** "em casa", "no Trabalho", "na Farmácia". */
+    fun em(name: String): String = when {
+        isHome(name) -> "em casa"
+        feminine(name) -> "na $name"
+        else -> "no $name"
+    }
+
+    /** "de casa", "do Trabalho", "da Farmácia". */
+    fun de(name: String): String = when {
+        isHome(name) -> "de casa"
+        feminine(name) -> "da $name"
+        else -> "do $name"
+    }
+
+    /** "em casa", "ao Trabalho", "à Farmácia" (depois de "chegou"). */
+    fun ao(name: String): String = when {
+        isHome(name) -> "em casa"
+        feminine(name) -> "à $name"
+        else -> "ao $name"
+    }
+
+    /** Primeira letra minúscula, para usar no meio da frase. */
+    fun lowerFirst(text: String): String =
+        if (text.length > 1 && text[1].isUpperCase()) text // siglas como "RH"
+        else text.replaceFirstChar { it.lowercase(PT) }
+
+    fun plural(n: Int, one: String, many: String) = if (n == 1) "1 $one" else "$n $many"
+
+    fun time(minutesOfDay: Int): String = String.format(PT, "%02d:%02d", minutesOfDay / 60, minutesOfDay % 60)
+
+    /** Frase-resumo mostrada antes de salvar uma tarefa. */
+    fun taskSummary(placeName: String?, remind: RemindWhen, repeat: Repeat, timeOfDayMin: Int?): String {
+        val rep = when (repeat) {
+            Repeat.ONCE -> ""
+            Repeat.DAILY -> ", todo dia"
+            Repeat.WEEKLY -> ", toda semana"
+            Repeat.MONTHLY -> ", todo mês"
+        }
+        return when (remind) {
+            RemindWhen.ARRIVE -> if (placeName != null) "Vamos lembrar você ao chegar ${em(placeName)}$rep." else "Escolha um lugar para lembrar ao chegar."
+            RemindWhen.LEAVE -> if (placeName != null) "Vamos lembrar você ao sair ${de(placeName)}$rep." else "Escolha um lugar para lembrar ao sair."
+            RemindWhen.TIME -> "Vamos lembrar você às ${time(timeOfDayMin ?: 0)}$rep."
+            RemindWhen.NONE -> if (placeName != null) "Fica ${em(placeName)}, sem aviso$rep." else "Fica na sua lista, sem aviso$rep."
+        }
+    }
+
+    /** Frase-resumo mostrada antes de salvar uma memória. */
+    fun memorySummary(placeName: String?, show: MemoryShow): String = when {
+        placeName == null -> "Escolha o lugar onde esta memória deve aparecer."
+        show == MemoryShow.ALWAYS -> "Aparece na tela Agora sempre que você estiver ${em(placeName)}. Não tem prazo."
+        else -> "Aparece na próxima vez que você estiver ${em(placeName)}."
+    }
+}

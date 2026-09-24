@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Roteiro Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Onest:wght@400;500;600;700&family=Schibsted+Grotesk:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/proto.css">
+</head>
+<body>
+
+<header class="ptop">
+  <svg width="30" height="30" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="17" fill="none" stroke="var(--d-accent)" stroke-width="5"/><circle cx="27.5" cy="20.5" r="6" fill="var(--d-accent)"/></svg>
+  <span class="wm" style="font-family:var(--font-display);font-weight:700;letter-spacing:-.035em">roteiro</span>
+  <span class="tag-d">demonstração interativa</span>
+  <a href="index.html" id="doc-link">Ver documentação do design →</a>
+</header>
+
+<main class="pw">
+  <div class="stage app" id="phone" aria-live="polite"></div>
+  <aside class="sim app" id="sim" aria-label="Simulador de contexto"></aside>
+</main>
+
+<script src="js/icons.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/screens.js"></script>
+<script src="js/proto.js"></script>
+</body>
+</html>

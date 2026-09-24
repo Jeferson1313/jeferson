@@ -1,6 +1,0 @@
-<resources>
-    <style name="Theme.Contexto" parent="android:Theme.Material.NoActionBar">
-        <item name="android:windowBackground">@color/bg</item>
-        <item name="android:colorAccent">@color/accent</item>
-    </style>
-</resources>

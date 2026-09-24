@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Roteiro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Onest:wght@400;500;600;700&family=Schibsted+Grotesk:wght@500;600;700&display=swap">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/doc.css">
+</head>
+<body>
+
+<header class="wrap hero">
+  <div>
+    <div class="brand app" style="color:var(--d-ink)">
+      <svg width="64" height="64" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="17" fill="none" stroke="var(--d-accent)" stroke-width="5"/><circle cx="27.5" cy="20.5" r="6" fill="var(--d-accent)"/></svg>
+      <span class="wm">roteiro</span>
+    </div>
+    <p class="thesis">Eu não preciso lembrar. <em>O aplicativo me lembra quando eu estiver no lugar certo.</em></p>
+  </div>
+  <div class="meta"><b>Design de produto · v1.0</b><br>38 telas · 6 fluxos · iOS e Android<br>setembro de 2026<br><a id="demo-link" href="prototipo.html" style="font-family:var(--font-ui);font-size:15px;font-weight:600;text-decoration:none">Abrir demonstração interativa →</a></div>
+</header>
+
+<nav class="dnav" aria-label="Seções">
+  <div class="wrap">
+    <div class="dnav-links">
+      <a href="#conceito">Conceito</a>
+      <a href="#navegacao">Navegação</a>
+      <a href="#fluxos">Fluxos</a>
+      <a href="#lista-telas">Lista de telas</a>
+      <a href="#telas">Telas</a>
+      <a href="#estados">Estados</a>
+      <a href="#notificacoes">Notificações</a>
+      <a href="#design-system">Design system</a>
+    </div>
+    <div class="mode" role="group" aria-label="Modo de visualização das telas">
+      <button type="button" data-m="final" aria-pressed="true">Layout final</button>
+      <button type="button" data-m="wf" aria-pressed="false">Wireframe</button>
+    </div>
+  </div>
+</nav>
+
+<main>
+<!-- ============ CONCEITO ============ -->
+<section class="wrap sect" id="conceito">
+  <div class="eyebrow">Antes de desenhar</div>
+  <h2>O que mudamos no conceito</h2>
+  <p class="lede">A ideia central se mantém: tarefas e memórias moram em lugares, e o app fala na hora certa. Ao pensar no uso real, encontramos pontos em que a proposta inicial ia gerar atrito. Estas são as decisões que moldaram todas as telas.</p>
+
+  <div class="review">
+    <div class="rv"><div class="rv-p">Problema · lugar é pouco</div><h4>Um contexto nem sempre tem endereço</h4><p>O carro não fica num ponto do mapa. Um "Lugar" pode ser reconhecido por GPS, Wi-Fi, Bluetooth, tag NFC ou QR Code. Para o usuário, continua sendo só "Carro".</p></div>
+    <div class="rv"><div class="rv-p">Problema · jargão</div><h4>"Gatilho" some da criação de tarefa</h4><p>Na tarefa, virou "Quando lembrar", já marcado em "Ao chegar". A tela de gatilho completo existe para quem quer automatizar, mas ninguém precisa dela para começar.</p></div>
+    <div class="rv"><div class="rv-p">Problema · adiar por hora</div><h4>Adiar significa "na próxima vez que eu vier aqui"</h4><p>Adiar 1 hora não faz sentido para "comprar café". A opção padrão devolve o item na próxima visita ao lugar. Hora e troca de lugar vêm depois.</p></div>
+    <div class="rv"><div class="rv-p">Problema · falsos avisos</div><h4>Passar perto não é chegar</h4><p>Só avisamos depois de 2 minutos no local (ajustável), ou na hora se o Wi-Fi ou a tag NFC confirmar. Uma chegada gera uma notificação só, com o total de itens.</p></div>
+    <div class="rv"><div class="rv-p">Problema · saída imprecisa</div><h4>Saída combina vários sinais</h4><p>Saída da cerca virtual, perda do Wi-Fi do lugar e conexão ao carro. Só avisa se há algo pendente. O botão "Ainda estou aqui" corrige o app e ajusta o próximo cálculo.</p></div>
+    <div class="rv"><div class="rv-p">Problema · GPS erra</div><h4>O app admite quando não tem certeza</h4><p>Com sinal fraco, a tela Agora pergunta "Talvez você esteja em Supermercado?" e resolve com um toque. Escolher o lugar manualmente é sempre possível.</p></div>
+    <div class="rv"><div class="rv-p">Problema · tela inicial vazia</div><h4>Fora dos seus lugares, Agora mostra o que vem a seguir</h4><p>Lugares perto (com distância), o próximo contexto provável e o que é do dia. Nunca uma lista geral.</p></div>
+    <div class="rv"><div class="rv-p">Diferença clara</div><h4>Memória não é tarefa</h4><p>Memória não tem caixa de marcar nem prazo. Pode levar nota, foto ou um "campo para anotar lá": o número do medidor é digitado no local e guardado com histórico.</p></div>
+    <div class="rv"><div class="rv-p">Novo · lugar por tipo</div><h4>"Qualquer farmácia"</h4><p>Algumas tarefas não dependem de um endereço. Lugares por categoria usam a classificação do próprio mapa, sem IA.</p></div>
+    <div class="rv"><div class="rv-p">Novo · captura rápida</div><h4>Anotar em 2 toques</h4><p>O botão + abre com um campo "Anotar algo aqui". Escreveu e confirmou, virou memória do lugar atual.</p></div>
+    <div class="rv"><div class="rv-p">Novo · limpeza</div><h4>Itens ignorados não se acumulam</h4><p>Depois de 3 visitas sem ação, o app pergunta "Ainda precisa disso?" com as opções manter, mudar de lugar ou arquivar.</p></div>
+    <div class="rv"><div class="rv-p">Confiança</div><h4>Privacidade é parte do produto</h4><p>Processamento no aparelho, sem conta obrigatória, histórico de visitas desligado por padrão. Explicamos isso antes do pedido de localização do sistema.</p></div>
+  </div>
+</section>
+
+<!-- ============ NAVEGAÇÃO ============ -->
+<section class="wrap sect" id="navegacao">
+  <div class="eyebrow">Entregável 1 · Arquitetura de navegação</div>
+  <h2>Agora · Lugares · + · Lista · Rotinas</h2>
+  <p class="lede">Partimos da sugestão Início, Mapa, Tarefas e Rotinas. Mantivemos quatro destinos e o botão de adicionar no centro, mas trocamos nomes e ordem para que a navegação explique o produto.</p>
+
+  <div class="arch">
+    <div>
+      <div class="tabdemo app" id="tabdemo"></div>
+    </div>
+    <ul class="decide">
+      <li><b>Agora</b><span>No lugar de "Início". O nome diz o que a tela faz e reforça a ideia do produto.</span></li>
+      <li><b>Lugares</b><span>No lugar de "Mapa". O mapa é a visualização padrão, mas carro, NFC e Wi-Fi não têm ponto no mapa e precisam de uma lista.</span></li>
+      <li><b>+</b><span>No centro, ao alcance do polegar. Abre uma folha com o lugar atual já escolhido.</span></li>
+      <li><b>Lista</b><span>No lugar de "Tarefas". Reúne tarefas e memórias, fica em quarto e tem nome neutro para não virar o centro do produto.</span></li>
+      <li><b>Rotinas</b><span>Recurso avançado e de uso raro, por isso fica na ponta.</span></li>
+      <li><b>Sem aba</b><span>Gatilhos sempre pertencem a um lugar ou rotina, então vivem dentro deles e no +. O perfil ("Você") abre pelo avatar em Agora.</span></li>
+    </ul>
+  </div>
+
+  <h3>Mapa do aplicativo</h3>
+  <p>As cinco primeiras colunas são destinos da barra. As tracejadas são camadas acessadas por outros caminhos.</p>
+  <div class="tree" id="tree"></div>
+</section>
+
+<!-- ============ FLUXOS ============ -->
+<section class="wrap sect" id="fluxos">
+  <div class="eyebrow">Entregáveis 2, 9, 10, 11, 12 e 13 · Fluxogramas</div>
+  <h2>Fluxos principais</h2>
+  <p class="lede">Caixas escuras são decisões. Caixas tracejadas são eventos do sistema, sem ação do usuário. Os códigos levam à tela correspondente.</p>
+
+  <h3>Fluxo principal: do + até a chegada</h3>
+  <div class="flowbox" id="flow-main"></div>
+
+  <h3>Criar tarefa</h3>
+  <p>Mínimo de 3 toques mais o nome. Lugar, "quando" e "repetir" já vêm preenchidos com o mais provável.</p>
+  <div class="flowbox" id="flow-task"></div>
+
+  <h3>Criar memória</h3>
+  <p>Dois caminhos: captura rápida pelo + ou memória completa com nota, foto ou campo para anotar no local.</p>
+  <div class="flowbox" id="flow-mem"></div>
+
+  <h3>Criar gatilho</h3>
+  <p>Uma frase no topo ("Quando… Então…") se completa conforme o usuário escolhe. Permissões são tratadas no próprio fluxo.</p>
+  <div class="flowbox" id="flow-trig"></div>
+
+  <h3>Chegada a um lugar</h3>
+  <div class="flowbox" id="flow-arrive"></div>
+
+  <h3>Saída de um lugar</h3>
+  <div class="flowbox" id="flow-leave"></div>
+</section>
+
+<!-- ============ LISTA ============ -->
+<section class="wrap sect" id="lista-telas">
+  <div class="eyebrow">Entregável 3 · Lista completa das telas</div>
+  <h2>38 telas, cada uma com um objetivo</h2>
+  <p class="lede">Para cada tela respondemos: o que o usuário quer fazer aqui, qual é a ação principal e o que foi tirado para a tela ficar simples.</p>
+  <div class="tbl-wrap" id="screen-table"></div>
+</section>
+
+<!-- ============ TELAS ============ -->
+<section class="wrap sect" id="telas">
+  <div class="eyebrow">Entregáveis 4 e 5 · Wireframes e layout final</div>
+  <h2>Telas</h2>
+  <p class="lede">Use o seletor no topo para alternar entre <b>Layout final</b> e <b>Wireframe</b>. O wireframe é a mesma estrutura sem cor, identidade ou fontes, para discutir hierarquia sem distração. As telas também seguem o tema escuro do seu sistema.</p>
+  <div id="gallery"></div>
+</section>
+
+<!-- ============ ESTADOS ============ -->
+<section class="wrap sect" id="estados">
+  <div class="eyebrow">Entregáveis 6, 7 e 8 · Estados</div>
+  <h2>Vazio, com dados, erro e permissão</h2>
+  <p class="lede">Nenhum estado vazio é só uma ilustração: cada um oferece uma ação e sugestões reais. Nenhum erro bloqueia o app inteiro: o que ainda funciona continua visível.</p>
+  <div class="tree" style="margin-top:28px">
+    <div class="tcol"><h5>Vazios</h5><ul>
+      <li><a class="ref" href="#T10">T10</a><span>Agora, primeiro uso, com ideias para começar</span></li>
+      <li><a class="ref" href="#T21">T21</a><span>Lugares sem cadastro, com sugestões em chips</span></li>
+      <li><a class="ref" href="#T32">T32</a><span>Nada atrasado, com tom de tranquilidade</span></li>
+    </ul></div>
+    <div class="tcol"><h5>Com dados</h5><ul>
+      <li><a class="ref" href="#T07">T07</a><span>Agora no supermercado</span></li>
+      <li><a class="ref" href="#T11">T11</a><span>Chegada ao trabalho</span></li>
+      <li><a class="ref" href="#T19">T19</a><span>Mapa com 6 lugares</span></li>
+      <li><a class="ref" href="#T22">T22</a><span>Detalhe do lugar</span></li>
+      <li><a class="ref" href="#T31">T31</a><span>Lista agrupada por lugar</span></li>
+      <li><a class="ref" href="#T33">T33</a><span>Rotinas ativas e pausadas</span></li>
+    </ul></div>
+    <div class="tcol"><h5>Erro e incerteza</h5><ul>
+      <li><a class="ref" href="#T09">T09</a><span>Sinal fraco: "Talvez você esteja em…"</span></li>
+      <li><a class="ref" href="#T36">T36</a><span>Localização negada, com alternativas</span></li>
+      <li><a class="ref" href="#T38">T38</a><span>Gatilho indisponível (Bluetooth, NFC)</span></li>
+    </ul></div>
+    <div class="tcol"><h5>Permissão</h5><ul>
+      <li><a class="ref" href="#T05">T05</a><span>Explicação antes do pedido do sistema</span></li>
+      <li><a class="ref" href="#T37">T37</a><span>Central de permissões com correção direta</span></li>
+      <li><a class="ref" href="#T35">T35</a><span>Status de detecção em Você</span></li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- ============ NOTIFICAÇÕES ============ -->
+<section class="wrap sect" id="notificacoes">
+  <div class="eyebrow">Entregável 14 · Design das notificações</div>
+  <h2>Poucos avisos, todos resolvíveis sem abrir o app</h2>
+  <p class="lede">A notificação é a principal interface do Roteiro. Se ela incomodar, o usuário desliga, e o produto deixa de existir. As telas <a class="ref" href="#T16">T16</a> <a class="ref" href="#T17">T17</a> <a class="ref" href="#T18">T18</a> mostram os formatos.</p>
+  <div class="rules">
+    <div class="rule"><b>Anatomia</b><span>Título diz o fato ("Você chegou ao supermercado."). Corpo diz o que fazer. No máximo 2 ações.</span></div>
+    <div class="rule"><b>Uma por chegada</b><span>Todos os itens do lugar entram na mesma notificação, com o total no texto.</span></div>
+    <div class="rule"><b>Tempo mínimo no lugar</b><span>2 minutos por padrão. Wi-Fi, NFC e QR confirmam na hora.</span></div>
+    <div class="rule"><b>Silêncio quando não há nada</b><span>Chegar a um lugar sem pendências só atualiza a tela Agora.</span></div>
+    <div class="rule"><b>Ações que resolvem</b><span>"Peguei", "Feito" e "Próxima vez" funcionam direto na notificação.</span></div>
+    <div class="rule"><b>Prioridade</b><span>Prazo vencendo, depois "ao sair", depois "ao chegar", depois memórias.</span></div>
+    <div class="rule"><b>Horário silencioso</b><span>22h às 7h por padrão. O que chegar nesse período espera até você abrir o app.</span></div>
+    <div class="rule"><b>Tom</b><span>Frases curtas, sem exclamação e sem emoji. O app informa, não comemora.</span></div>
+  </div>
+  <div class="tbl-wrap copy"><table style="min-width:640px"><thead><tr><th>Situação</th><th>Título</th><th>Texto</th><th>Ações</th></tr></thead><tbody>
+    <tr><td>Chegada</td><td class="nm">Você chegou ao supermercado.</td><td>3 coisas estão esperando por você aqui.</td><td>Ver · Mais tarde</td></tr>
+    <tr><td>Saída</td><td class="nm">Você está saindo do trabalho.</td><td>Você ainda precisa pegar o documento no RH.</td><td>Peguei · Próxima vez</td></tr>
+    <tr><td>Carro</td><td class="nm">Carro conectado</td><td>Farmácia: comprar protetor solar.</td><td>Ver</td></tr>
+    <tr><td>Memória</td><td class="nm">Você está em casa.</td><td>Lembrete: anotar o número do medidor.</td><td>Anotar · Depois</td></tr>
+    <tr><td>Rotina</td><td class="nm">Cheguei em casa · 1 de 3</td><td>Guardar as compras.</td><td>Feito · Pular</td></tr>
+    <tr><td>Limpeza</td><td class="nm">Ainda precisa disso?</td><td>"Ver preço do arroz" apareceu nas últimas 3 visitas.</td><td>Manter · Arquivar</td></tr>
+  </tbody></table></div>
+</section>
+
+<!-- ============ DESIGN SYSTEM ============ -->
+<section class="wrap sect" id="design-system">
+  <div class="eyebrow">Entregável 15 · Design system básico</div>
+  <h2>Sinal, Marcador e tons neutros</h2>
+  <p class="lede">Uma cor de ação (cobalto "Sinal") marca o que é tocável e o contexto atual. Âmbar ("Marcador") é exclusivo de memórias. Vermelho e verde só indicam estado. Os neutros puxam levemente para o azul, para combinar com o cobalto.</p>
+
+  <div class="ds app">
+    <div class="panel"><h4>Marca</h4><div id="ds-logo"></div></div>
+    <div class="panel"><h4>Cores · claro · escuro</h4><div class="sw-grid" id="ds-colors"></div></div>
+    <div class="ds-2">
+      <div class="panel"><h4>Tipografia</h4><div class="ts" id="ds-type"></div></div>
+      <div class="panel"><h4>Espaçamento (base 4) e raios</h4><div class="sp" id="ds-space"></div>
+        <p style="font-size:14px;color:var(--a-ink-2);margin:20px 0 0">Margem lateral das telas: 20. Entre seções: 22–24. Área mínima de toque: 44×44. Folhas inferiores usam raio 26 no topo.</p></div>
+    </div>
+    <div class="panel"><h4>Botões e controles</h4><div id="ds-buttons"></div></div>
+    <div class="panel"><h4>Linhas, cartões e estados</h4><div class="demo-col" id="ds-rows"></div></div>
+    <div class="panel"><h4>Campos</h4><div class="demo-col" id="ds-fields"></div></div>
+    <div class="panel"><h4>Ícones · 24 px · traço 1,75</h4><div class="ic-grid" id="ds-icons"></div></div>
+  </div>
+</section>
+</main>
+
+<footer class="wrap foot-doc">
+  Roteiro · design de produto v1.0. Todas as telas são geradas pelos mesmos componentes em <code>js/ui.js</code>; tokens em <code>css/tokens.css</code>.
+</footer>
+
+<script src="js/icons.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/screens.js"></script>
+<script src="js/doc.js"></script>
+</body>
+</html>
